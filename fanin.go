@@ -22,10 +22,10 @@ func FanIn[T any](streams []Stream[T]) Stream[T] {
 	}
 
 	source := make(chan T)
-	g := gofuncy.NewGroup(ctx, "goflow.fan-in")
+	g := gofuncy.NewGroup(ctx, gofuncy.WithName("goflow.fan-in"))
 
 	for _, s := range streams {
-		g.Add("goflow.fan-in.worker", func(ctx context.Context) error {
+		g.Add(func(ctx context.Context) error {
 			for item := range s.source {
 				select {
 				case <-ctx.Done():
@@ -35,13 +35,13 @@ func FanIn[T any](streams []Stream[T]) Stream[T] {
 			}
 
 			return nil
-		})
+		}, gofuncy.WithName("goflow.fan-in.worker"))
 	}
 
-	gofuncy.Go(ctx, "goflow.fan-in", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 		return g.Wait()
-	}, opts...)
+	}, append(opts, gofuncy.WithName("goflow.fan-in"))...)
 
 	return Stream[T]{ctx: ctx, source: source, opts: opts}
 }

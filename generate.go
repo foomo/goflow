@@ -15,7 +15,7 @@ func Generate[T any](ctx context.Context, fn func() T) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(ctx, "goflow.generate", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for {
@@ -25,7 +25,7 @@ func Generate[T any](ctx context.Context, fn func() T) Stream[T] {
 			case source <- fn():
 			}
 		}
-	})
+	}, gofuncy.WithName("goflow.generate"))
 
 	return From[T](ctx, source)
 }

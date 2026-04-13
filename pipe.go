@@ -55,9 +55,9 @@ func Pipe[T any](ctx context.Context, bufferSize ...int) (func(context.Context, 
 // Returns only the send handler.
 func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...gofuncy.GoOption) func(context.Context, T) error {
 	send, s := Pipe[T](ctx)
-	gofuncy.Go(ctx, "goflow.pipe-func", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		return fn(ctx, s)
-	}, opts...)
+	}, append(opts, gofuncy.WithName("goflow.pipe-func"))...)
 
 	return send
 }

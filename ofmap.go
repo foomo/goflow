@@ -21,7 +21,7 @@ func OfMap[K comparable, V any](ctx context.Context, m map[K]V) Stream[KeyValue[
 
 	source := make(chan KeyValue[K, V], len(m))
 
-	gofuncy.Go(ctx, "goflow.of-map", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for k, v := range m {
@@ -33,7 +33,7 @@ func OfMap[K comparable, V any](ctx context.Context, m map[K]V) Stream[KeyValue[
 		}
 
 		return nil
-	})
+	}, gofuncy.WithName("goflow.of-map"))
 
 	return From[KeyValue[K, V]](ctx, source)
 }

@@ -14,7 +14,7 @@ func (s Stream[T]) Peek(fn func(context.Context, T)) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.peek", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for item := range s.source {
@@ -28,7 +28,7 @@ func (s Stream[T]) Peek(fn func(context.Context, T)) Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.peek"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }

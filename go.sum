@@ -22,8 +22,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/foomo/go v0.8.1 h1:ggD1qI57naIFYXD1tbYbPBTfag2LRWkwpvHWoIX5syc=
 github.com/foomo/go v0.8.1/go.mod h1:jeSB/atkoqSoJ3+ak0+b/Xtj7IMyDj1odzJroudT7Dw=
-github.com/foomo/gofuncy v0.1.0 h1:ZVwlAiFnSsgMJyQRP9taJjF6MeYP7QVNgESb/bEfd7I=
-github.com/foomo/gofuncy v0.1.0/go.mod h1:WnqsC/Ku/19tk0LYHVG8z9tsT9duKqpxHMiJioznv1M=
+github.com/foomo/gofuncy v0.2.0 h1:fanMIpHocWfoP+u8sevF+Qb/gEh38QeiS6FjeXB+Sx0=
+github.com/foomo/gofuncy v0.2.0/go.mod h1:WnqsC/Ku/19tk0LYHVG8z9tsT9duKqpxHMiJioznv1M=
 github.com/foomo/opentelemetry-go v0.2.0 h1:GlqsEhgW67E9r0a6da4zx0tIW/hXS0rGjNSzaVuh16k=
 github.com/foomo/opentelemetry-go v0.2.0/go.mod h1:R3Se/rc5FRAs4ThE6JQ9Oq3cOLo2MOsUzZLJxZquwxA=
 github.com/foomo/opentelemetry-go/exporters/glossy/glossymetric v0.2.0 h1:5s/WUZkl966ZDfkm5Hsj6UQX9tcAo/1PWg88bQL4aSo=

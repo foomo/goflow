@@ -18,7 +18,7 @@ func (s Stream[T]) Tee(n int) []Stream[T] {
 		sources[i] = make(chan T)
 	}
 
-	gofuncy.Go(s.ctx, "goflow.tee", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer func() {
 			for _, ch := range sources {
 				close(ch)
@@ -36,7 +36,7 @@ func (s Stream[T]) Tee(n int) []Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.tee"))...)
 
 	streams := make([]Stream[T], n)
 	for i, ch := range sources {

@@ -15,7 +15,7 @@ func MapFilter[T, U any](s Stream[T], fn func(context.Context, T) (U, bool, erro
 
 	source := make(chan U)
 
-	gofuncy.Go(s.ctx, "goflow.map-filter", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for item := range s.source {
@@ -36,7 +36,7 @@ func MapFilter[T, U any](s Stream[T], fn func(context.Context, T) (U, bool, erro
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.map-filter"))...)
 
 	return Stream[U]{ctx: s.ctx, source: source, opts: s.opts}
 }

@@ -14,7 +14,7 @@ func (s Stream[T]) Distinct(key func(T) string) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.distinct", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		seen := make(map[string]struct{})
@@ -35,7 +35,7 @@ func (s Stream[T]) Distinct(key func(T) string) Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.distinct"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }

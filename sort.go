@@ -15,7 +15,7 @@ func (s Stream[T]) Sort(cmp func(T, T) int) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.sort", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		items := s.Collect()
@@ -30,7 +30,7 @@ func (s Stream[T]) Sort(cmp func(T, T) int) Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.sort"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }

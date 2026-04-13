@@ -23,7 +23,7 @@ func Concat[T any](streams ...Stream[T]) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(ctx, "goflow.concat", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for _, s := range streams {
@@ -37,7 +37,7 @@ func Concat[T any](streams ...Stream[T]) Stream[T] {
 		}
 
 		return nil
-	}, opts...)
+	}, append(opts, gofuncy.WithName("goflow.concat"))...)
 
 	return Stream[T]{ctx: ctx, source: source, opts: opts}
 }

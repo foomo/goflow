@@ -16,7 +16,7 @@ func Iterate[T any](ctx context.Context, seed T, fn func(T) T) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(ctx, "goflow.iterate", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		val := seed
@@ -29,7 +29,7 @@ func Iterate[T any](ctx context.Context, seed T, fn func(T) T) Stream[T] {
 				val = fn(val)
 			}
 		}
-	})
+	}, gofuncy.WithName("goflow.iterate"))
 
 	return From[T](ctx, source)
 }

@@ -15,7 +15,7 @@ func FlatMap[T, U any](s Stream[T], fn func(context.Context, T) Stream[U]) Strea
 
 	source := make(chan U)
 
-	gofuncy.Go(s.ctx, "goflow.flat-map", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for item := range s.source {
@@ -30,7 +30,7 @@ func FlatMap[T, U any](s Stream[T], fn func(context.Context, T) Stream[U]) Strea
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.flat-map"))...)
 
 	return Stream[U]{ctx: s.ctx, source: source, opts: s.opts}
 }

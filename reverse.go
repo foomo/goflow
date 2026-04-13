@@ -14,7 +14,7 @@ func (s Stream[T]) Reverse() Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.reverse", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		items := s.Collect()
@@ -27,7 +27,7 @@ func (s Stream[T]) Reverse() Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.reverse"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }

@@ -34,10 +34,10 @@ func FromFunc[T any](ctx context.Context, bufSize int, fn func(ctx context.Conte
 		}
 	}
 
-	gofuncy.Go(ctx, "goflow.from-func", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(ch)
 		return fn(ctx, send)
-	}, opts...)
+	}, append(opts, gofuncy.WithName("goflow.from-func"))...)
 
 	return Stream[T]{ctx: ctx, source: ch, opts: opts}
 }

@@ -101,8 +101,10 @@ generate:
 .PHONY: audit
 ## Run security audit
 audit:
-	@echo "〉trivy scan"
-	@trivy fs . --format table --severity HIGH,CRITICAL
+	@echo "〉security audit"
+	#@trivy fs . --format table --severity HIGH,CRITICAL
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	@go govulncheck ./...
 
 .PHONY: outdated
 ## Show outdated direct dependencies

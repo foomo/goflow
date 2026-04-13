@@ -108,7 +108,7 @@ func Of[T any](ctx context.Context, items ...T) Stream[T] {
 
 	source := make(chan T, n)
 
-	gofuncy.Go(ctx, "goflow.of", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for _, item := range items {
@@ -120,7 +120,7 @@ func Of[T any](ctx context.Context, items ...T) Stream[T] {
 		}
 
 		return nil
-	})
+	}, gofuncy.WithName("goflow.of"))
 
 	return From[T](ctx, source)
 }

@@ -61,7 +61,7 @@ func FromIter[T any](ctx context.Context, seq iter.Seq[T]) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(ctx, "goflow.from-iter", func(ctx context.Context) error {
+	gofuncy.Go(ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for v := range seq {
@@ -73,7 +73,7 @@ func FromIter[T any](ctx context.Context, seq iter.Seq[T]) Stream[T] {
 		}
 
 		return nil
-	})
+	}, gofuncy.WithName("goflow.from-iter"))
 
 	return From[T](ctx, source)
 }
