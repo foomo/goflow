@@ -17,7 +17,7 @@ func (s Stream[T]) FanOut(n int) []Stream[T] {
 		sources[i] = make(chan T)
 	}
 
-	gofuncy.Go(s.ctx, "goflow.fan-out", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer func() {
 			for _, ch := range sources {
 				close(ch)
@@ -37,7 +37,7 @@ func (s Stream[T]) FanOut(n int) []Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.fan-out"))...)
 
 	streams := make([]Stream[T], n)
 	for i, ch := range sources {

@@ -15,7 +15,7 @@ func (s Stream[T]) Throttle(d time.Duration) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.throttle", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		ticker := time.NewTicker(d)
@@ -41,7 +41,7 @@ func (s Stream[T]) Throttle(d time.Duration) Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.throttle"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }

@@ -15,7 +15,7 @@ func Map[T, U any](s Stream[T], fn func(context.Context, T) (U, error)) Stream[U
 
 	source := make(chan U)
 
-	gofuncy.Go(s.ctx, "goflow.map", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		for item := range s.source {
@@ -32,7 +32,7 @@ func Map[T, U any](s Stream[T], fn func(context.Context, T) (U, error)) Stream[U
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.map"))...)
 
 	return Stream[U]{ctx: s.ctx, source: source, opts: s.opts}
 }

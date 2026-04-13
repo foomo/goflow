@@ -15,7 +15,7 @@ func Split[T any](s Stream[T], n int) Stream[[]T] {
 
 	source := make(chan []T)
 
-	gofuncy.Go(s.ctx, "goflow.split", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		batch := make([]T, 0, n)
@@ -41,7 +41,7 @@ func Split[T any](s Stream[T], n int) Stream[[]T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.split"))...)
 
 	return Stream[[]T]{ctx: s.ctx, source: source, opts: s.opts}
 }

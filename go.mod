@@ -3,7 +3,7 @@ module github.com/foomo/goflow
 go 1.26.0
 
 require (
-	github.com/foomo/gofuncy v0.1.0
+	github.com/foomo/gofuncy v0.2.0
 	github.com/foomo/opentelemetry-go v0.2.0
 	github.com/foomo/opentelemetry-go/exporters/glossy/glossytrace v0.2.0
 	github.com/stretchr/testify v1.11.1

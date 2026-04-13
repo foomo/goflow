@@ -14,7 +14,7 @@ func (s Stream[T]) Take(n int) Stream[T] {
 
 	source := make(chan T)
 
-	gofuncy.Go(s.ctx, "goflow.take", func(ctx context.Context) error {
+	gofuncy.Go(s.ctx, func(ctx context.Context) error {
 		defer close(source)
 
 		count := 0
@@ -32,7 +32,7 @@ func (s Stream[T]) Take(n int) Stream[T] {
 		}
 
 		return nil
-	}, s.opts...)
+	}, append(s.opts, gofuncy.WithName("goflow.take"))...)
 
 	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
 }
