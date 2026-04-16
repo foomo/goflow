@@ -3,6 +3,8 @@ layout: home
 
 hero:
   name: goflow
+  image:
+    src: /logo.png
   text: Type-safe Stream Processing for Go
   tagline: Composable, concurrent, context-aware stream pipelines built on Go generics
   actions:

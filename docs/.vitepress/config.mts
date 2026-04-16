@@ -28,6 +28,7 @@ export default defineConfig({
 					{ text: 'Operators', link: '/guide/operators' },
 					{ text: 'Concurrency', link: '/guide/concurrency' },
 					{ text: 'Error Handling', link: '/guide/error-handling' },
+					{ text: 'Graceful Shutdown', link: '/guide/graceful-shutdown' },
 					{ text: 'Advanced', link: '/guide/advanced' },
 				],
 			},
