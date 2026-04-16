@@ -97,6 +97,8 @@ When a context is cancelled, `Collect()` returns the elements received so far --
 
 ## Pattern: Graceful Shutdown
 
+> For a comprehensive guide on shutdown mechanics, signal handling, and partial results, see [Graceful Shutdown](graceful-shutdown.md).
+
 For long-running pipelines, combine context cancellation with ForEach to handle errors explicitly:
 
 ```go
