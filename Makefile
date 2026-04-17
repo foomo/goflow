@@ -118,7 +118,7 @@ outdated:
 ## Show outdated direct dependencies
 upgrade: go.work
 	@echo "〉go mod upgrade"
-	@go get -t -u all
+	@go get -u ./...
 
 ### Documentation
 
