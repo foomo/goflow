@@ -5,17 +5,17 @@ go 1.26.0
 require (
 	github.com/foomo/gofuncy v0.2.0
 	github.com/foomo/opentelemetry-go v0.2.0
-	github.com/foomo/opentelemetry-go/exporters/glossy/glossytrace v0.2.0
+	github.com/foomo/opentelemetry-go/exporters/glossy/glossytrace v0.3.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
 )
 
 require (
-	charm.land/lipgloss/v2 v2.0.2 // indirect
+	charm.land/lipgloss/v2 v2.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260330092749-0f94982c930b // indirect
-	github.com/charmbracelet/x/ansi v0.11.6 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260416161146-9c68a866306c // indirect
+	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
