@@ -32,7 +32,7 @@ endif
 
 .PHONY: check
 ## Run lint & test
-check: tidy generate actionlint lint test.race audit
+check: tidy generate actionlint lint.fix test.race audit
 
 .PHONY: tidy
 ## Run go mod tidy
@@ -52,25 +52,23 @@ lint.fix:
 	@echo "〉golangci-lint run fix"
 	@golangci-lint run --fix
 
-
 .PHONY: test
 ## Run tests
 test:
 	@echo "〉go test"
-	@GO_TEST_TAGS=-skip gotestsum -- -tags=safe -coverprofile=coverage.out ./...
+	@GO_TEST_TAGS=-skip gotestsum -- -tags=safe -shuffle=on -coverprofile=coverage.out ./...
 
 .PHONY: test.race
 ## Run tests with -race
 test.race:
 	@echo "〉go test -race"
-	@GO_TEST_TAGS=-skip gotestsum -- -tags=safe -coverprofile=coverage.out -race ./...
+	@GO_TEST_TAGS=-skip gotestsum -- -tags=safe -shuffle=on -coverprofile=coverage.out -race ./...
 
 .PHONY: test.bench
 ## Run tests with -bench
 test.bench:
 	@echo "〉go test -bench"
-	@GO_TEST_TAGS=-skip gotestsum -- -tags=safe -bench=. -benchmem -count=10 ./... > .benchmark.txt | benchstat benchmark.txt .benchmark.txt
-	@rm .benchstat.txt
+	@GO_TEST_TAGS=-skip go test -v -tags=safe -shuffle=on -bench=. -benchmem ./... > benchmarks.out
 
 .PHONY: test.bench.update
 ## Run tests with -bench & update baseline.txt
@@ -127,7 +125,6 @@ godocs:
 audit:
 	@echo "〉security audit"
 	@osv-scanner --call-analysis=all --config=.osv-scanner.toml $(if $(GITHUB_ACTIONS),--format=gh-annotations) -r .
-
 
 ### Utils
 
