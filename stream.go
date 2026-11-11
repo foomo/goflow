@@ -13,6 +13,17 @@ import (
 	"github.com/foomo/goflow/semconv"
 )
 
+// Stream is a sequence of elements of type T that flows through a channel and
+// is bound to a context.
+//
+// Create a Stream with a constructor such as [Of], [From], [FromFunc] or
+// [Pipe]. Operators that keep the element type are methods; operators that
+// change it are functions such as [Map]. Each operator starts a goroutine and
+// returns a new Stream; the stages stop when the context ends.
+//
+// A Stream is single-use: read it with exactly one operator or terminal
+// method (Collect, Count, Chan, Iter, ForEach, ...). The zero value is not
+// usable.
 type Stream[T any] struct {
 	ctx    context.Context //nolint:containedctx // by design
 	source <-chan T
@@ -245,10 +256,16 @@ func (s Stream[T]) WithOptions(opts ...gofuncy.GoOption) Stream[T] {
 	return s
 }
 
+// Chan returns the channel that carries the stream's elements. The channel
+// closes when the source ends. For streams from [Pipe] or [Batch], a stage
+// goroutine feeds the channel and stops when the stream's context ends.
 func (s Stream[T]) Chan() <-chan T {
 	return s.ch()
 }
 
+// Count drains the stream and returns the number of elements read. It stops
+// when the source closes or the stream's context ends. See [Pipe] for
+// elements still buffered when the context ends.
 func (s Stream[T]) Count() int {
 	var count int
 
@@ -259,6 +276,10 @@ func (s Stream[T]) Count() int {
 	return count
 }
 
+// Collect drains the stream and returns its elements in order. It stops when
+// the source closes or the stream's context ends, and returns the elements
+// read so far. See [Pipe] for elements still buffered when the context ends.
+// It returns nil for an empty stream.
 func (s Stream[T]) Collect() []T {
 	var out []T
 
@@ -309,6 +330,8 @@ func closedChan[T any]() <-chan T {
 	return ch
 }
 
+// Empty returns a closed stream with no elements, bound to
+// [context.Background].
 func Empty[T any]() Stream[T] {
 	return Stream[T]{ctx: context.Background(), source: closedChan[T]()}
 }
