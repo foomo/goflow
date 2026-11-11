@@ -11,7 +11,8 @@ import (
 // items and must respect context cancellation.
 //
 // The stream closes automatically when fn returns. If fn returns a non-nil
-// error it is handled by gofuncy.Go (logged via the configured error handler).
+// error it is handled by [gofuncy.Go] (logged via the configured error
+// handler).
 //
 // bufSize controls backpressure: a full buffer blocks the send callback until
 // the stream consumer catches up.

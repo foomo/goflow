@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	// ErrFull is returned by Sender.Try when the pipe buffer is full.
+	// ErrFull is returned by [Sender.Try] when the pipe buffer is full.
 	ErrFull = errors.New("goflow: pipe full")
 	// ErrClosed is returned when sending to a closed pipe.
 	ErrClosed = errors.New("goflow: pipe closed")
 )
 
-// Sender is the writable entry point of a Pipe or PipeFunc. It is safe for
+// Sender is the writable entry point of a [Pipe] or [PipeFunc]. It is safe for
 // concurrent use.
 type Sender[T any] struct {
 	ch      chan envelope[T]
@@ -83,18 +83,20 @@ func (s *Sender[T]) watch(ctx context.Context) {
 // Pipe creates a writable stream entry point.
 // Returns a Sender and the readable stream.
 //
-// The entry point closes when ctx is done or when Sender.Close is called.
-// The stream and all stages derived from it run on ctx, so they stop when ctx
-// ends. After that, Collect, Count, Iter, Iter2 and FindFirst still read the
-// elements buffered in the entry point; ForEach, Process, Chan and the other
-// stages stop with ctx and drop them. To drain a long-lived pipeline on
-// shutdown, use PipeFunc instead.
+// The entry point closes when ctx is done or when [Sender.Close] is called. The
+// stream and all stages derived from it run on ctx, so they stop when ctx ends.
+// After that, [Stream.Collect], [Stream.Count], [Stream.Iter], [Stream.Iter2]
+// and [Stream.FindFirst] still read the elements buffered in the entry point;
+// [Stream.ForEach], [Stream.Process], [Stream.Chan] and the other stages stop
+// with ctx and drop them. To drain a long-lived pipeline on shutdown, use
+// [PipeFunc] instead.
 //
-// Queue depth and capacity gauges are only reported when WithName is set;
+// Queue depth and capacity gauges are only reported when [WithName] is set;
 // the name must then be unique among live pipes. They are removed when the
 // entry point closes.
 //
-// Options: WithBuffer, WithName, WithMeterProvider, WithTracerProvider, WithStageTracing.
+// Options: [WithBuffer], WithName, [WithMeterProvider], [WithTracerProvider],
+// [WithStageTracing].
 func Pipe[T any](ctx context.Context, opts ...Option) (*Sender[T], Stream[T]) {
 	s := newSender[T](newConfig(opts))
 	s.watch(ctx)
@@ -112,10 +114,10 @@ func Pipe[T any](ctx context.Context, opts ...Option) (*Sender[T], Stream[T]) {
 // context is cancelled.
 //
 // An fn that only waits for ctx.Done() keeps running until Close times out.
-// When fn returns, the entry point closes too: later sends return ErrClosed,
+// When fn returns, the entry point closes too: later sends return [ErrClosed],
 // and elements still buffered are dropped (counted in goflow.pipe.dropped).
 //
-// Options: as for Pipe.
+// Options: as for [Pipe].
 func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...Option) *Sender[T] {
 	s := newSender[T](newConfig(opts))
 
@@ -219,8 +221,8 @@ func (s *Sender[T]) Send(ctx context.Context, v T) error {
 	}
 }
 
-// Try queues v without blocking. It returns ErrFull when the buffer is full
-// and ErrClosed when the pipe is closed. Rejected elements count as dropped.
+// Try queues v without blocking. It returns [ErrFull] when the buffer is full
+// and [ErrClosed] when the pipe is closed. Rejected elements count as dropped.
 func (s *Sender[T]) Try(ctx context.Context, v T) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -244,7 +246,7 @@ func (s *Sender[T]) Try(ctx context.Context, v T) error {
 // Close closes the entry point and implements a graceful closer (e.g. keel's
 // Close(ctx) error).
 //
-// For a Pipe sender it returns nil at once. For a PipeFunc sender it then
+// For a [Pipe] sender it returns nil at once. For a [PipeFunc] sender it then
 // waits until fn has returned and returns fn's error; if ctx ends first, it
 // cancels fn's context and returns ctx.Err().
 func (s *Sender[T]) Close(ctx context.Context) error {

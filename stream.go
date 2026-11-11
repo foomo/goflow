@@ -21,9 +21,9 @@ import (
 // change it are functions such as [Map]. Each operator starts a goroutine and
 // returns a new Stream; the stages stop when the context ends.
 //
-// A Stream is single-use: read it with exactly one operator or terminal
-// method (Collect, Count, Chan, Iter, ForEach, ...). The zero value is not
-// usable.
+// A Stream is single-use: read it with exactly one operator or terminal method
+// ([Stream.Collect], [Stream.Count], [Stream.Chan], [Stream.Iter],
+// [Stream.ForEach], ...). The zero value is not usable.
 type Stream[T any] struct {
 	ctx    context.Context //nolint:containedctx // by design
 	source <-chan T

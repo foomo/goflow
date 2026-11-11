@@ -12,14 +12,14 @@ import (
 
 // Batch groups consecutive elements into batches.
 //
-// A batch is flushed when it reaches MaxItems, when the next element would
-// push it over MaxBytes, when MaxWait has passed since its first element,
+// A batch is flushed when it reaches [MaxItems], when the next element would
+// push it over [MaxBytes], when [MaxWait] has passed since its first element,
 // or when the input closes (the partial batch is always flushed).
 // Without any of these options Batch behaves like MaxItems(1).
 //
-// When the input comes from a Pipe, each batch keeps links to the origin spans
-// of its elements (up to 128); a directly following ForEach or Process starts
-// one span per batch that has links.
+// When the input comes from a [Pipe], each batch keeps links to the origin
+// spans of its elements (up to 128); a directly following [Stream.ForEach] or
+// [Stream.Process] starts one span per batch that has links.
 func Batch[T any](s Stream[T], opts ...Option) Stream[[]T] {
 	c := newConfig(opts)
 

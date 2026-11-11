@@ -11,11 +11,11 @@ import (
 )
 
 // Process consumes the stream with n concurrent workers.
-// Errors are collected and returned via errors.Join once the stream ends.
+// Errors are collected and returned via [errors.Join] once the stream ends.
 //
-// With WithErrorHandler, errors are passed to the handler instead and not
-// retained, which suits long-lived streams. Use WithGroupOptions to configure
-// the underlying gofuncy.Group.
+// With [WithErrorHandler], errors are passed to the handler instead and not
+// retained, which suits long-lived streams. Use [WithGroupOptions] to configure
+// the underlying [gofuncy.Group].
 func (s Stream[T]) Process(n int, fn func(context.Context, T) error, opts ...Option) error {
 	c := newConfig(opts)
 

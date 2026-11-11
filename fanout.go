@@ -7,8 +7,8 @@ func (s Stream[T]) FanOut(n int) []Stream[T] {
 	return s.spread(n, "goflow.fan-out", func(i int, _ []chan T) int { return i % n })
 }
 
-// Tee broadcasts every element to n output streams.
-// Unlike FanOut which round-robins, Tee sends each element to all streams.
+// Tee broadcasts every element to n output streams. Unlike [Stream.FanOut]
+// which round-robins, Tee sends each element to all streams.
 func (s Stream[T]) Tee(n int) []Stream[T] {
 	return s.spread(n, "goflow.tee", func(int, []chan T) int { return -1 })
 }
