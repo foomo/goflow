@@ -23,6 +23,18 @@ For terminal operators (`Reduce`, `ForEach`), the error is returned directly to 
 
 For `Process`, all worker errors are collected and returned via `errors.Join`, so you see every failure.
 
+### WithErrorHandler
+
+For long-lived streams, pass `goflow.WithErrorHandler` to `ForEach` or `Process`. Each per-element error goes to the handler, consumption continues, and no error is retained. The terminal then returns only context errors or nil.
+
+```go
+err := s.Process(8, func(ctx context.Context, e Event) error {
+    return handle(ctx, e)
+}, goflow.WithErrorHandler(func(ctx context.Context, err error) {
+    slog.ErrorContext(ctx, "event failed", "error", err)
+}))
+```
+
 ## Non-Error Operators
 
 These operators do not return errors from their callbacks. They either use simple predicates or perform side-effect-free operations:

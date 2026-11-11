@@ -27,6 +27,73 @@ type KeyValue[K comparable, V any] struct {
 
 Holds a single key-value pair. Used by `OfMap` and related operators when streaming over map entries.
 
+### Sender
+
+```go
+type Sender[T any] struct {
+    // unexported fields
+}
+
+func (s *Sender[T]) Send(ctx context.Context, v T) error
+func (s *Sender[T]) Try(ctx context.Context, v T) error
+func (s *Sender[T]) Close(ctx context.Context) error
+```
+
+The writable entry point of a `Pipe` or `PipeFunc`. Safe for concurrent use; concurrent senders do not serialize behind each other.
+
+- `Send` -- blocks until `v` is queued. Returns `ErrClosed` when the pipe is closed, or `ctx.Err()` when `ctx` is done.
+- `Try` -- queues `v` without blocking. Returns `ErrFull` when the buffer is full and `ErrClosed` when the pipe is closed. Rejected elements count as dropped.
+- `Close` -- closes the entry point. Implements a graceful closer such as keel's `Close(ctx) error`. For a `Pipe` sender it returns `nil` at once. For a `PipeFunc` sender it waits until `fn` returns and returns `fn`'s error; if `ctx` ends first, it cancels `fn`'s context and returns `ctx.Err()`.
+
+### Option
+
+```go
+type Option func(*config)
+```
+
+Configures `Pipe`, `PipeFunc`, `Batch`, `ForEach` and `Process`. Each function ignores options that do not apply to it.
+
+| Option | Applies to | Description |
+|---|---|---|
+| `WithBuffer(n int)` | Pipe, PipeFunc | Entry point channel capacity (default 0, unbuffered). |
+| `WithName(name string)` | Pipe, PipeFunc | Pipeline name, used as the `goflow.pipeline.name` attribute and in the span name `process <name>` (default `"goflow.pipe"`). |
+| `WithStageTracing()` | Pipe, PipeFunc | Keep gofuncy goroutine spans for the pipeline stages. Off by default, because the stages live as long as the pipeline. |
+| `WithMeterProvider(mp metric.MeterProvider)` | Pipe, PipeFunc | Meter provider for pipeline metrics. Defaults to the otel global. |
+| `WithTracerProvider(tp trace.TracerProvider)` | Pipe, PipeFunc | Tracer provider for linked consumer spans. Defaults to the otel global. |
+| `MaxItems(n int)` | Batch | Flush a batch when it holds `n` elements. |
+| `MaxBytes[T any](n int, size func(T) int)` | Batch | Flush a batch before its summed element size would exceed `n`. `T` must match the stream element type, otherwise Batch panics. |
+| `MaxWait(d time.Duration)` | Batch | Flush a non-empty batch `d` after its first element arrived. |
+| `WithErrorHandler(h ErrorHandler)` | ForEach, Process | Hand per-element errors to `h` and keep consuming. Errors are not retained. |
+| `WithGroupOptions(opts ...gofuncy.GroupOption)` | Process | Options for the `gofuncy.Group` that runs the workers. |
+
+### ErrorHandler
+
+```go
+type ErrorHandler = gofuncy.ErrorHandler // func(ctx context.Context, err error)
+```
+
+Receives per-element errors from `ForEach` and `Process` when set via `WithErrorHandler`. It is an alias of the gofuncy handler type, so one value serves both libraries.
+
+### Errors
+
+```go
+var (
+    ErrFull   = errors.New("goflow: pipe full")
+    ErrClosed = errors.New("goflow: pipe closed")
+)
+```
+
+- `ErrFull` -- returned by `Sender.Try` when the pipe buffer is full.
+- `ErrClosed` -- returned when sending to a closed pipe. When the parent context closed the pipe, the error also wraps the context cause, so `errors.Is(err, context.Canceled)` still works.
+
+### Constants
+
+```go
+const ScopeName = "github.com/foomo/goflow"
+```
+
+`ScopeName` is the OpenTelemetry instrumentation scope used by goflow. Attribute keys and flush, drop and stage enums are in the package `github.com/foomo/goflow/semconv`, for example `semconv.FlushReasonCount`. Typed instruments are in `github.com/foomo/goflow/semconv/goflowconv`.
+
 ---
 
 ## Constructors
@@ -129,31 +196,37 @@ Returns an immediately closed, empty stream with a background context.
 ### Pipe
 
 ```go
-func Pipe[T any](ctx context.Context, bufferSize ...int) (func(context.Context, T) error, Stream[T])
+func Pipe[T any](ctx context.Context, opts ...Option) (*Sender[T], Stream[T])
 ```
 
-Creates a writable stream entry point. Returns a `send` function and the readable stream. The send function returns `ctx.Err()` if the stream's context is cancelled, or `sctx.Err()` if the send context is cancelled. The channel is closed when `ctx` is done.
+Creates a writable stream entry point. Returns a `Sender` and the readable stream. The entry point closes when `ctx` is done or when `Sender.Close` is called. The stream and its stages run on `ctx` and stop when it ends; `Collect`, `Count`, `Iter`, `Iter2` and `FindFirst` still read the elements already buffered in the entry point; `ForEach`, `Process`, `Chan` and other stages stop with `ctx` and drop them. To drain a long-lived pipeline, use `PipeFunc`.
+
+Queue gauges are only reported when `WithName` is set; the name must then be unique among live pipes. They are removed when the entry point closes.
+
+For each element, Pipe captures the span context of the send `ctx` as a trace link. See [Metrics and Tracing](../guide/advanced.md#metrics-and-tracing).
 
 **Parameters:**
-- `ctx` -- context controlling the stream's lifetime.
-- `bufferSize` -- optional channel buffer size (default 0, unbuffered).
+- `ctx` -- parent context. When done, the entry point closes.
+- `opts` -- `WithBuffer`, `WithName`, `WithMeterProvider`, `WithTracerProvider`.
 
 **Returns:**
-- `send` -- function to push values; safe to call from multiple goroutines.
+- `*Sender[T]` -- the writable entry point; safe to use from multiple goroutines.
 - `Stream[T]` -- the readable stream.
 
 ### PipeFunc
 
 ```go
-func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...gofuncy.GoOption) func(context.Context, T) error
+func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...Option) *Sender[T]
 ```
 
-Creates a Pipe and launches the consumer `fn` in a `gofuncy.Go` goroutine. Returns only the send handler.
+Creates a draining pipeline: a Pipe plus the consumer `fn`, launched in a `gofuncy.Go` goroutine. Returns only the `Sender`.
+
+`fn` and all stages it builds run on a context that `ctx` does not cancel. When `ctx` ends or `Close` is called, the entry point closes; `fn` keeps consuming the queued elements and must return when its stream ends. `Close(ctx)` waits for that. When `fn` returns, or `Close`'s `ctx` ends first, the stage context is cancelled and the queue gauges are removed. An `fn` that only waits for `ctx.Done()` keeps running until `Close` times out.
 
 **Parameters:**
-- `ctx` -- context controlling the stream's lifetime.
+- `ctx` -- parent context. When done, the entry point closes.
 - `fn` -- consumer function that processes the stream.
-- `opts` -- optional `gofuncy.GoOption` for the consumer goroutine.
+- `opts` -- same options as `Pipe`.
 
 ---
 
@@ -231,7 +304,7 @@ Collects all elements, sorts them using `cmp` (via `slices.SortFunc`), and emits
 func Split[T any](s Stream[T], n int) Stream[[]T]
 ```
 
-Groups consecutive elements into batches of size `n`. The last batch may contain fewer than `n` elements.
+Groups consecutive elements into batches of size `n`. The last batch may contain fewer than `n` elements. It is `Batch(s, MaxItems(n))`, so batches from a Pipe keep their trace links and metrics.
 
 **Parameters:**
 - `s` -- the source stream.
@@ -248,6 +321,22 @@ Emits sliding windows of `n` consecutive elements. Each window is a fresh slice.
 **Parameters:**
 - `s` -- the source stream.
 - `n` -- window size. Must be > 0.
+
+### Batch
+
+```go
+func Batch[T any](s Stream[T], opts ...Option) Stream[[]T]
+```
+
+Groups consecutive elements into batches. A batch is flushed when it reaches `MaxItems`, when the next element would push it over `MaxBytes`, when `MaxWait` has passed since its first element, or when the input closes (the partial batch is always flushed). Without any of these options Batch behaves like `MaxItems(1)`. The flush reason (`count`, `bytes`, `interval`, `close`) is recorded in the `goflow.batch.size` metric and in consumer spans.
+
+Unlike `Split` (count only) and `Window` (sliding), Batch also flushes by size and time.
+
+When the input comes from a Pipe, each batch keeps links to the origin spans of its elements (up to 128); a directly following `ForEach` or `Process` starts one span per batch that has links.
+
+**Parameters:**
+- `s` -- the source stream.
+- `opts` -- `MaxItems`, `MaxBytes`, `MaxWait`.
 
 ---
 
@@ -342,13 +431,14 @@ Returns the number of elements in the stream. Prioritizes draining available ite
 ### ForEach
 
 ```go
-func (s Stream[T]) ForEach(fn func(context.Context, T) error) error
+func (s Stream[T]) ForEach(fn func(context.Context, T) error, opts ...Option) error
 ```
 
-Consumes the stream, calling `fn` for each element. Returns the first error from `fn` or `ctx.Err()`, nil when fully consumed.
+Consumes the stream, calling `fn` for each element. Returns the first error from `fn` or `ctx.Err()`, nil when fully consumed. With `WithErrorHandler`, errors from `fn` are passed to the handler and consumption continues; ForEach then only returns ctx errors or nil.
 
 **Parameters:**
 - `fn` -- consumer function. Receives the stream's context and the element.
+- `opts` -- optional `WithErrorHandler`.
 
 ### Reduce
 
@@ -453,15 +543,15 @@ Returns the maximum element according to `cmp` and true, or the zero value and f
 ### Process
 
 ```go
-func (s Stream[T]) Process(n int, fn func(context.Context, T) error, opts ...gofuncy.GroupOption) error
+func (s Stream[T]) Process(n int, fn func(context.Context, T) error, opts ...Option) error
 ```
 
-Consumes the stream, dispatching each element to a worker pool of size `n`. Uses `gofuncy.NewGroup` with a concurrency limit. All errors are collected and returned via `errors.Join`.
+Consumes the stream with `n` long-lived workers in a `gofuncy.Group`. All errors are collected and returned via `errors.Join`. With `WithErrorHandler`, errors are passed to the handler instead and not retained, which suits long-lived streams.
 
 **Parameters:**
-- `n` -- maximum number of concurrent workers.
+- `n` -- number of concurrent workers.
 - `fn` -- worker function. Receives the stream's context and the element.
-- `opts` -- optional `gofuncy.GroupOption` for the worker group.
+- `opts` -- optional `WithErrorHandler` and `WithGroupOptions(...gofuncy.GroupOption)`.
 
 ---
 
@@ -587,6 +677,10 @@ Returns a shallow copy of the stream with the given options appended to any exis
 
 **Parameters:**
 - `opts` -- `gofuncy.GoOption` values to append.
+
+::: warning
+`gofuncy.WithRetry` passed here retries the whole stage goroutine, not a single element. For per-element retry, wrap `fn` in `gofuncy.Do(ctx, fn, gofuncy.WithRetry(...))`.
+:::
 
 ### Chan
 

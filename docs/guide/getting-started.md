@@ -124,7 +124,7 @@ Terminal operations consume the stream and produce a final result. Once a termin
 |---|---|
 | `Collect() []T` | Collects all elements into a slice. |
 | `Count() int` | Returns the number of elements. |
-| `ForEach(fn) error` | Calls fn for each element; returns the first error. |
+| `ForEach(fn, opts...) error` | Calls fn for each element; returns the first error. |
 | `Reduce(initial, fn) (U, error)` | Folds all elements into a single value. |
 | `ToMap(key, value) map[K]V` | Collects elements into a map. |
 | `FindFirst() (T, bool)` | Returns the first element, or false if empty. |
@@ -134,7 +134,7 @@ Terminal operations consume the stream and produce a final result. Once a termin
 | `NoneMatch(fn) bool` | True if no elements match fn. |
 | `Min(cmp) (T, bool)` | Returns the minimum element according to cmp. |
 | `Max(cmp) (T, bool)` | Returns the maximum element according to cmp. |
-| `Process(n, fn, opts...) error` | Dispatches elements to a worker pool of size n. |
+| `Process(n, fn, opts...) error` | Consumes elements with n concurrent workers. |
 
 ::: tip
 `FindFirst`, `FindFirstMatch`, `AnyMatch`, and `NoneMatch` short-circuit: they stop consuming the stream as soon as the result is determined.

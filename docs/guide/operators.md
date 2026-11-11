@@ -112,26 +112,29 @@ s := goflow.Empty[int]()
 ### Pipe
 
 ```go
-func Pipe[T any](ctx context.Context, bufferSize ...int) (func(context.Context, T) error, Stream[T])
+func Pipe[T any](ctx context.Context, opts ...Option) (*Sender[T], Stream[T])
 ```
 
-Creates a writable stream entry point. Returns a `send` function and the readable stream. The send function returns `ctx.Err()` if the context is cancelled. The channel is closed when the context is done.
+Creates a writable stream entry point. Returns a `*Sender[T]` and the readable stream. `Send` blocks and returns `ErrClosed` or the send context's error; `Try` never blocks and returns `ErrFull` or `ErrClosed`. The entry point closes when `ctx` is done or `Close` is called. The stream and its stages run on `ctx` and stop when it ends. To drain a long-lived pipeline, use `PipeFunc`.
+
+Options: `WithBuffer`, `WithName`, `WithMeterProvider`, `WithTracerProvider`.
 
 ```go
-send, s := goflow.Pipe[string](ctx)
+send, s := goflow.Pipe[string](ctx, goflow.WithBuffer(16))
 go func() {
-    send(ctx, "hello")
-    send(ctx, "world")
+    send.Send(ctx, "hello")
+    send.Send(ctx, "world")
+    send.Close(ctx)
 }()
 ```
 
 ### PipeFunc
 
 ```go
-func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...gofuncy.GoOption) func(context.Context, T) error
+func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...Option) *Sender[T]
 ```
 
-Creates a Pipe and launches the consumer `fn` in a `gofuncy.Go` goroutine. Returns only the send handler.
+Creates a Pipe and launches the consumer `fn` in a `gofuncy.Go` goroutine. Returns only the `Sender`. `fn` and its stages run on a context that `ctx` does not cancel; `fn` must return when its stream ends. `Close(ctx)` waits until `fn` returns.
 
 ```go
 send := goflow.PipeFunc[int](ctx, func(ctx context.Context, s goflow.Stream[int]) error {
@@ -140,7 +143,7 @@ send := goflow.PipeFunc[int](ctx, func(ctx context.Context, s goflow.Stream[int]
         return nil
     })
 })
-send(ctx, 42)
+send.Send(ctx, 42)
 ```
 
 ---
@@ -266,6 +269,24 @@ windows := goflow.Window(goflow.Of(ctx, 1, 2, 3, 4), 3)
 // [1,2,3], [2,3,4]
 ```
 
+### Batch
+
+```go
+func Batch[T any](s Stream[T], opts ...Option) Stream[[]T]
+```
+
+Groups consecutive elements into batches. A batch is flushed when it reaches `MaxItems(n)`, when the next element would push it over `MaxBytes(n, size)`, when `MaxWait(d)` has passed since its first element, or when the input closes (the partial batch is always flushed). Without options, Batch behaves like `MaxItems(1)`. An element larger than `MaxBytes` forms a batch of its own. The flush reason (`count`, `bytes`, `interval`, `close`) is recorded in metrics and spans.
+
+Unlike `Split` (count only) and `Window` (sliding), Batch also flushes by size and time, which suits long-lived streams.
+
+```go
+batches := goflow.Batch(events,
+    goflow.MaxItems(200),
+    goflow.MaxBytes(400<<10, func(e Event) int { return len(e.Payload) }),
+    goflow.MaxWait(5*time.Second),
+)
+```
+
 ---
 
 ## Filters
@@ -384,10 +405,10 @@ n := goflow.Of(ctx, 1, 2, 3).Count()
 ### ForEach
 
 ```go
-func (s Stream[T]) ForEach(fn func(context.Context, T) error) error
+func (s Stream[T]) ForEach(fn func(context.Context, T) error, opts ...Option) error
 ```
 
-Consumes the stream, calling `fn` for each element. Returns the first error from `fn` or the context, nil when fully consumed.
+Consumes the stream, calling `fn` for each element. Returns the first error from `fn` or the context, nil when fully consumed. With `WithErrorHandler(h)`, errors from `fn` go to `h` and consumption continues; ForEach then only returns context errors or nil.
 
 ```go
 err := s.ForEach(func(_ context.Context, item Item) error {
@@ -512,10 +533,10 @@ largest, ok := s.Max(func(a, b int) int { return a - b })
 ### Process
 
 ```go
-func (s Stream[T]) Process(n int, fn func(context.Context, T) error, opts ...gofuncy.GroupOption) error
+func (s Stream[T]) Process(n int, fn func(context.Context, T) error, opts ...Option) error
 ```
 
-Consumes the stream, dispatching each element to a worker pool of size `n`. All errors are collected and returned via `errors.Join`.
+Consumes the stream with `n` long-lived workers. All errors are collected and returned via `errors.Join`. With `WithErrorHandler(h)`, errors go to `h` instead and are not retained. Use `WithGroupOptions(...)` to pass `gofuncy.GroupOption` values to the worker group.
 
 ```go
 err := s.Process(4, func(ctx context.Context, item Item) error {

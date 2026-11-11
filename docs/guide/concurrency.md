@@ -68,7 +68,7 @@ results := goflow.FanMapFilter(s, 4, func(ctx context.Context, id string) (User,
 
 ## Process -- Parallel Consumption
 
-`Process` is a terminal operator that dispatches each element to a bounded worker pool. Unlike FanMap which produces a new stream, Process consumes the stream and collects errors.
+`Process` is a terminal operator that consumes the stream with `n` long-lived workers. Unlike FanMap which produces a new stream, Process consumes the stream and collects errors.
 
 ```go
 err := goflow.Of(ctx, urls...).Process(8, func(ctx context.Context, url string) error {
@@ -84,7 +84,7 @@ if err != nil {
 }
 ```
 
-Process uses `gofuncy.NewGroup` under the hood with a concurrency limit. All errors are collected and returned via `errors.Join`, so you see every failure rather than just the first.
+Process runs `n` workers in a `gofuncy.Group`; it does not start one goroutine per element. Configure the group with `goflow.WithGroupOptions(...)`. All errors are collected and returned via `errors.Join`, so you see every failure rather than just the first. For long-lived streams, pass `goflow.WithErrorHandler(h)` instead: errors go to `h` and are not retained.
 
 ## Tee -- Broadcasting
 
@@ -126,7 +126,7 @@ For high-throughput pipelines, you can tune behavior with buffer sizes and gofun
 **Buffer sizes** on Pipe reduce blocking between producers and consumers:
 
 ```go
-send, s := goflow.Pipe[int](ctx, 1024) // 1024-element buffer
+send, s := goflow.Pipe[int](ctx, goflow.WithBuffer(1024)) // 1024-element buffer
 ```
 
 **WithOptions** propagates gofuncy options (error handlers, tracing) to all downstream operators:
