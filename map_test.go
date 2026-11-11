@@ -7,10 +7,12 @@ import (
 	"strconv"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	stream "github.com/foomo/goflow"
 	"github.com/foomo/gofuncy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMap(t *testing.T) {
@@ -51,6 +53,8 @@ func TestMapError(t *testing.T) {
 	}).Collect()
 	// Stream closes on error — we get elements before the error
 	assert.Less(t, len(got), 5)
+	// gofuncy calls the error handler after the stage closed its output.
+	require.Eventually(t, func() bool { return gotErr.Load() != nil }, time.Second, time.Millisecond)
 	assert.ErrorIs(t, gotErr.Load().(error), errBoom)
 }
 

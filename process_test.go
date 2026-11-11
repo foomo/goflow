@@ -9,6 +9,7 @@ import (
 	"time"
 
 	stream "github.com/foomo/goflow"
+	"github.com/foomo/gofuncy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,4 +72,39 @@ func TestProcessLimit(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.LessOrEqual(t, peak.Load(), int32(3))
+}
+
+func TestProcessCancelSingleError(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	ch := make(chan int)
+	close(ch)
+
+	err := stream.From(ctx, ch).Process(4, func(context.Context, int) error { return nil })
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Equal(t, context.Canceled.Error(), err.Error(), "expected one context error, not one per worker")
+}
+
+// WithGroupOptions reaches the worker group: a limit of 1 runs one worker at a time.
+func TestProcessWithGroupOptions(t *testing.T) {
+	var running, peak atomic.Int64
+
+	err := stream.Of(t.Context(), 1, 2, 3, 4, 5, 6).Process(4, func(context.Context, int) error {
+		cur := running.Add(1)
+		defer running.Add(-1)
+
+		for {
+			old := peak.Load()
+			if cur <= old || peak.CompareAndSwap(old, cur) {
+				break
+			}
+		}
+
+		time.Sleep(5 * time.Millisecond)
+
+		return nil
+	}, stream.WithGroupOptions(gofuncy.WithLimit(1)))
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), peak.Load())
 }

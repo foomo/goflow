@@ -1,44 +1,35 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Window emits sliding windows of n consecutive elements.
 // If the source has fewer than n elements, no windows are emitted.
 func Window[T any](s Stream[T], n int) Stream[[]T] {
-	if n <= 0 || s.ctx.Err() != nil {
+	if n <= 0 {
 		return closed[[]T](s.ctx)
 	}
 
-	source := make(chan []T)
-
-	gofuncy.Go(s.ctx, func(ctx context.Context) error {
-		defer close(source)
-
+	return stage(s, "goflow.window", func(_ context.Context, emit func([]T) bool) error {
 		buf := make([]T, 0, n)
-		for item := range s.source {
+
+		for item := range s.items() {
 			if len(buf) == n {
 				buf = buf[1:]
 			}
 
 			buf = append(buf, item)
-			if len(buf) == n {
-				win := make([]T, n)
-				copy(win, buf)
+			if len(buf) < n {
+				continue
+			}
 
-				select {
-				case <-ctx.Done():
-					return nil
-				case source <- win:
-				}
+			win := make([]T, n)
+			copy(win, buf)
+
+			if !emit(win) {
+				return nil
 			}
 		}
 
 		return nil
-	}, append(s.opts, gofuncy.WithName("goflow.window"))...)
-
-	return Stream[[]T]{ctx: s.ctx, source: source, opts: s.opts}
+	})
 }

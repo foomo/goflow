@@ -1,25 +1,13 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Distinct deduplicates elements using a key function. First occurrence wins.
 func (s Stream[T]) Distinct(key func(T) string) Stream[T] {
-	if s.ctx.Err() != nil {
-		return closed[T](s.ctx)
-	}
-
-	source := make(chan T)
-
-	gofuncy.Go(s.ctx, func(ctx context.Context) error {
-		defer close(source)
-
+	return stage(s, "goflow.distinct", func(_ context.Context, emit func(T) bool) error {
 		seen := make(map[string]struct{})
 
-		for item := range s.source {
+		for item := range s.items() {
 			k := key(item)
 			if _, ok := seen[k]; ok {
 				continue
@@ -27,15 +15,11 @@ func (s Stream[T]) Distinct(key func(T) string) Stream[T] {
 
 			seen[k] = struct{}{}
 
-			select {
-			case <-ctx.Done():
+			if !emit(item) {
 				return nil
-			case source <- item:
 			}
 		}
 
 		return nil
-	}, append(s.opts, gofuncy.WithName("goflow.distinct"))...)
-
-	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
+	})
 }

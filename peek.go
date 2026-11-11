@@ -1,34 +1,18 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Peek calls fn for each element as a side-effect and forwards the element unchanged.
 func (s Stream[T]) Peek(fn func(context.Context, T)) Stream[T] {
-	if s.ctx.Err() != nil {
-		return closed[T](s.ctx)
-	}
-
-	source := make(chan T)
-
-	gofuncy.Go(s.ctx, func(ctx context.Context) error {
-		defer close(source)
-
-		for item := range s.source {
+	return stage(s, "goflow.peek", func(ctx context.Context, emit func(T) bool) error {
+		for item := range s.items() {
 			fn(ctx, item)
 
-			select {
-			case <-ctx.Done():
+			if !emit(item) {
 				return nil
-			case source <- item:
 			}
 		}
 
 		return nil
-	}, append(s.opts, gofuncy.WithName("goflow.peek"))...)
-
-	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
+	})
 }

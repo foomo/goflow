@@ -7,7 +7,7 @@ func (s Stream[T]) Min(cmp func(T, T) int) (T, bool) {
 
 	found := false
 
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			break
 		}
@@ -28,7 +28,7 @@ func (s Stream[T]) Max(cmp func(T, T) int) (T, bool) {
 
 	found := false
 
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			break
 		}

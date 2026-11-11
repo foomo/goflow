@@ -1,19 +1,26 @@
 package goflow
 
-import "context"
+import (
+	"context"
+
+	"github.com/foomo/goflow/semconv"
+)
 
 // ForEach consumes the stream, calling fn for each element.
 // Returns the first error from fn or ctx, nil when fully consumed.
-func (s Stream[T]) ForEach(fn func(context.Context, T) error) error {
-	for item := range s.source {
-		if s.ctx.Err() != nil {
-			return s.ctx.Err()
-		}
+//
+// With WithErrorHandler, errors from fn are passed to the handler and
+// consumption continues; ForEach then only returns ctx errors or nil.
+func (s Stream[T]) ForEach(fn func(context.Context, T) error, opts ...Option) error {
+	c := newConfig(opts)
 
-		if err := fn(s.ctx, item); err != nil {
+	return consume(s.ctx, s, semconv.StageNameForEach, fn, func(ctx context.Context, err error) error {
+		if c.errorHandler == nil {
 			return err
 		}
-	}
 
-	return nil
+		c.errorHandler(ctx, err)
+
+		return nil
+	})
 }

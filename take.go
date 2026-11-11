@@ -1,38 +1,24 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Take emits the first n elements then closes the stream.
 func (s Stream[T]) Take(n int) Stream[T] {
-	if n <= 0 || s.ctx.Err() != nil {
+	if n <= 0 {
 		return closed[T](s.ctx)
 	}
 
-	source := make(chan T)
-
-	gofuncy.Go(s.ctx, func(ctx context.Context) error {
-		defer close(source)
-
+	return stage(s, "goflow.take", func(_ context.Context, emit func(T) bool) error {
 		count := 0
-		for item := range s.source {
-			if count >= n {
+
+		for item := range s.items() {
+			if count >= n || !emit(item) {
 				return nil
 			}
 
-			select {
-			case <-ctx.Done():
-				return nil
-			case source <- item:
-				count++
-			}
+			count++
 		}
 
 		return nil
-	}, append(s.opts, gofuncy.WithName("goflow.take"))...)
-
-	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
+	})
 }

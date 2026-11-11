@@ -6,7 +6,7 @@ import "context"
 // Short-circuits on the first non-matching element.
 // Returns true for an empty stream.
 func (s Stream[T]) AllMatch(fn func(context.Context, T) bool) bool {
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			return false
 		}
@@ -23,7 +23,7 @@ func (s Stream[T]) AllMatch(fn func(context.Context, T) bool) bool {
 // Short-circuits on the first matching element.
 // Returns false for an empty stream.
 func (s Stream[T]) AnyMatch(fn func(context.Context, T) bool) bool {
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			return false
 		}

@@ -24,20 +24,13 @@ import (
 //	    })
 //	})
 func FromFunc[T any](ctx context.Context, bufSize int, fn func(ctx context.Context, send func(T) error) error, opts ...gofuncy.GoOption) Stream[T] {
-	ch := make(chan T, bufSize)
-	send := func(v T) error {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case ch <- v:
+	return stageBuf(Stream[T]{ctx: ctx, opts: opts}, "goflow.from-func", bufSize, func(ctx context.Context, emit func(T) bool) error {
+		return fn(ctx, func(v T) error {
+			if !emit(v) {
+				return ctx.Err()
+			}
+
 			return nil
-		}
-	}
-
-	gofuncy.Go(ctx, func(ctx context.Context) error {
-		defer close(ch)
-		return fn(ctx, send)
-	}, append(opts, gofuncy.WithName("goflow.from-func"))...)
-
-	return Stream[T]{ctx: ctx, source: ch, opts: opts}
+		})
+	})
 }

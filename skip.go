@@ -1,38 +1,24 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Skip drops the first n elements and emits the rest.
 func (s Stream[T]) Skip(n int) Stream[T] {
-	if s.ctx.Err() != nil {
-		return closed[T](s.ctx)
-	}
-
-	source := make(chan T)
-
-	gofuncy.Go(s.ctx, func(ctx context.Context) error {
-		defer close(source)
-
+	return stage(s, "goflow.skip", func(_ context.Context, emit func(T) bool) error {
 		count := 0
-		for item := range s.source {
+
+		for item := range s.items() {
 			if count < n {
 				count++
+
 				continue
 			}
 
-			select {
-			case <-ctx.Done():
+			if !emit(item) {
 				return nil
-			case source <- item:
 			}
 		}
 
 		return nil
-	}, append(s.opts, gofuncy.WithName("goflow.skip"))...)
-
-	return Stream[T]{ctx: s.ctx, source: source, opts: s.opts}
+	})
 }
