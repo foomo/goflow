@@ -2,6 +2,7 @@ package goflow
 
 import (
 	"context"
+	"slices"
 
 	"github.com/foomo/gofuncy"
 )
@@ -18,11 +19,11 @@ func (s Stream[T]) Reverse() Stream[T] {
 		defer close(source)
 
 		items := s.Collect()
-		for i := len(items) - 1; i >= 0; i-- {
+		for _, item := range slices.Backward(items) {
 			select {
 			case <-ctx.Done():
 				return nil
-			case source <- items[i]:
+			case source <- item:
 			}
 		}
 
