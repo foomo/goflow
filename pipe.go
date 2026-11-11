@@ -56,7 +56,7 @@ func newSender[T any](c config) *Sender[T] {
 	}
 
 	if c.name != "" {
-		s.onClose = s.p.m.observeQueue(func() int { return len(s.ch) }, func() int { return cap(s.ch) })
+		s.onClose = s.p.observeQueue(func() int { return len(s.ch) }, func() int { return cap(s.ch) })
 	}
 
 	return s
@@ -179,7 +179,7 @@ func (s *Sender[T]) closeAfterConsumer(ctx context.Context) {
 	}
 
 	if n > 0 {
-		s.p.m.droppedItems(ctx, semconv.DropReasonClosed, n)
+		s.p.dropped.AddSet(ctx, n, s.p.dropSets[semconv.DropReasonClosed])
 	}
 }
 
@@ -188,7 +188,7 @@ func (s *Sender[T]) closeAfterConsumer(ctx context.Context) {
 func (s *Sender[T]) rejectIfClosed(ctx context.Context) error {
 	select {
 	case <-s.closing:
-		s.p.m.droppedItems(ctx, semconv.DropReasonClosed, 1)
+		s.p.dropped.AddSet(ctx, 1, s.p.dropSets[semconv.DropReasonClosed])
 
 		return s.closedErr
 	default:
@@ -207,15 +207,15 @@ func (s *Sender[T]) Send(ctx context.Context, v T) error {
 
 	select {
 	case <-s.closing:
-		s.p.m.droppedItems(ctx, semconv.DropReasonClosed, 1)
+		s.p.dropped.AddSet(ctx, 1, s.p.dropSets[semconv.DropReasonClosed])
 
 		return s.closedErr
 	case <-ctx.Done():
-		s.p.m.droppedItems(ctx, semconv.DropReasonCanceled, 1)
+		s.p.dropped.AddSet(ctx, 1, s.p.dropSets[semconv.DropReasonCanceled])
 
 		return ctx.Err()
 	case s.ch <- newEnvelope(ctx, v):
-		s.p.m.enqueuedItem(ctx)
+		s.p.enqueued.AddSet(ctx, 1, s.p.nameSet)
 
 		return nil
 	}
@@ -233,11 +233,11 @@ func (s *Sender[T]) Try(ctx context.Context, v T) error {
 
 	select {
 	case s.ch <- newEnvelope(ctx, v):
-		s.p.m.enqueuedItem(ctx)
+		s.p.enqueued.AddSet(ctx, 1, s.p.nameSet)
 
 		return nil
 	default:
-		s.p.m.droppedItems(ctx, semconv.DropReasonFull, 1)
+		s.p.dropped.AddSet(ctx, 1, s.p.dropSets[semconv.DropReasonFull])
 
 		return ErrFull
 	}

@@ -86,10 +86,10 @@ func Batch[T any](s Stream[T], opts ...Option) Stream[[]T] {
 
 			// Record only batches that were handed off.
 			if s.p != nil {
-				s.p.m.flushedBatch(ctx, e.batch.count, reason)
+				s.p.batchSize.RecordSet(ctx, int64(e.batch.count), s.p.flushSets[reason])
 
 				if size != nil {
-					s.p.m.flushedBody(ctx, body, reason)
+					s.p.batchBody.RecordSet(ctx, int64(body), s.p.flushSets[reason])
 				}
 			}
 

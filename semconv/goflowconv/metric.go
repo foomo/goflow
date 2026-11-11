@@ -75,6 +75,16 @@ func (m PipeEnqueued) Add(ctx context.Context, incr int64, pipelineName string, 
 	m.Int64Counter.Add(ctx, incr, withRequired(attrs, semconv.PipelineName(pipelineName)))
 }
 
+// AddSet adds incr with a precomputed attribute set. The set must hold the
+// attributes Add requires.
+func (m PipeEnqueued) AddSet(ctx context.Context, incr int64, set attribute.Set) {
+	if !m.Enabled(ctx) {
+		return
+	}
+
+	m.Int64Counter.Add(ctx, incr, metric.WithAttributeSet(set))
+}
+
 // ------------------------------------------------------------------------------------------------
 // ~ goflow.pipe.dropped
 // ------------------------------------------------------------------------------------------------
@@ -125,6 +135,16 @@ func (m PipeDropped) Add(ctx context.Context, incr int64, pipelineName string, r
 	}
 
 	m.Int64Counter.Add(ctx, incr, withRequired(attrs, semconv.PipelineName(pipelineName), semconv.DropReason(reason)))
+}
+
+// AddSet adds incr with a precomputed attribute set. The set must hold the
+// attributes Add requires.
+func (m PipeDropped) AddSet(ctx context.Context, incr int64, set attribute.Set) {
+	if !m.Enabled(ctx) {
+		return
+	}
+
+	m.Int64Counter.Add(ctx, incr, metric.WithAttributeSet(set))
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -271,6 +291,16 @@ func (m BatchSize) Record(ctx context.Context, val int64, pipelineName string, r
 	m.Int64Histogram.Record(ctx, val, withRequired(attrs, semconv.PipelineName(pipelineName), semconv.FlushReason(reason)))
 }
 
+// RecordSet records val with a precomputed attribute set. The set must hold
+// the attributes Record requires.
+func (m BatchSize) RecordSet(ctx context.Context, val int64, set attribute.Set) {
+	if !m.Enabled(ctx) {
+		return
+	}
+
+	m.Int64Histogram.Record(ctx, val, metric.WithAttributeSet(set))
+}
+
 // ------------------------------------------------------------------------------------------------
 // ~ goflow.batch.body.size
 // ------------------------------------------------------------------------------------------------
@@ -323,6 +353,16 @@ func (m BatchBodySize) Record(ctx context.Context, val int64, pipelineName strin
 	}
 
 	m.Int64Histogram.Record(ctx, val, withRequired(attrs, semconv.PipelineName(pipelineName), semconv.FlushReason(reason)))
+}
+
+// RecordSet records val with a precomputed attribute set. The set must hold
+// the attributes Record requires.
+func (m BatchBodySize) RecordSet(ctx context.Context, val int64, set attribute.Set) {
+	if !m.Enabled(ctx) {
+		return
+	}
+
+	m.Int64Histogram.Record(ctx, val, metric.WithAttributeSet(set))
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -379,6 +419,16 @@ func (m StageDuration) Record(ctx context.Context, val float64, pipelineName str
 	}
 
 	m.Float64Histogram.Record(ctx, val, withRequired(attrs, semconv.PipelineName(pipelineName), semconv.StageName(stage)))
+}
+
+// RecordSet records val with a precomputed attribute set. The set must hold
+// the attributes Record requires.
+func (m StageDuration) RecordSet(ctx context.Context, val float64, set attribute.Set) {
+	if !m.Enabled(ctx) {
+		return
+	}
+
+	m.Float64Histogram.Record(ctx, val, metric.WithAttributeSet(set))
 }
 
 // AttrErrorType returns the conditionally required "error.type" attribute,

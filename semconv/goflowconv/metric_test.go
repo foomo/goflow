@@ -108,3 +108,37 @@ func TestNilMeter(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, depth.Inst())
 }
+
+func TestRecordSet(t *testing.T) {
+	t.Parallel()
+
+	reader := sdkmetric.NewManualReader()
+	m := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader)).Meter("test")
+	ctx := t.Context()
+
+	enqueued, err := goflowconv.NewPipeEnqueued(m)
+	require.NoError(t, err)
+	dropped, err := goflowconv.NewPipeDropped(m)
+	require.NoError(t, err)
+	batchSize, err := goflowconv.NewBatchSize(m)
+	require.NoError(t, err)
+	batchBody, err := goflowconv.NewBatchBodySize(m)
+	require.NoError(t, err)
+	duration, err := goflowconv.NewStageDuration(m)
+	require.NoError(t, err)
+
+	set := attribute.NewSet(semconv.PipelineName("p"))
+	enqueued.AddSet(ctx, 1, set)
+	dropped.AddSet(ctx, 1, set)
+	batchSize.RecordSet(ctx, 3, set)
+	batchBody.RecordSet(ctx, 30, set)
+	duration.RecordSet(ctx, 0.1, set)
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(ctx, &rm))
+	require.Len(t, rm.ScopeMetrics[0].Metrics, 5)
+
+	for _, got := range rm.ScopeMetrics[0].Metrics {
+		metricdatatest.AssertHasAttributes(t, got, semconv.PipelineName("p"))
+	}
+}
