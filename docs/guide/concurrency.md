@@ -8,15 +8,11 @@ The FanOut/FanIn pattern distributes work across multiple goroutines and merges 
 
 **FanOut** distributes elements round-robin across `n` output streams. **FanIn** merges multiple streams into one, with elements arriving in non-deterministic order.
 
-```
-                    +--- Stream[T] (worker 0) ---+
-                    |                             |
-  Stream[T] --FanOut--> Stream[T] (worker 1) --FanIn--> Stream[T]
-                    |                             |
-                    +--- Stream[T] (worker 2) ---+
-```
+::: code-group
 
-```go
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fanout-fanin.svg" alt="FanOut(3), then n * n on each part, then FanIn"></div>
+
+```go [Code]
 ctx := context.Background()
 
 s := goflow.Of(ctx, 1, 2, 3, 4, 5, 6, 7, 8, 9)
@@ -34,6 +30,8 @@ result := goflow.FanIn(transformed).Collect()
 fmt.Println(result) // order is non-deterministic
 ```
 
+:::
+
 ::: warning
 FanOut sends to unbuffered channels. It blocks on the slowest consumer. If one partition is not being consumed, the entire upstream pipeline stalls.
 :::
@@ -42,11 +40,17 @@ FanOut sends to unbuffered channels. It blocks on the slowest consumer. If one p
 
 `FanMap` combines FanOut, MapEach, and FanIn into a single call. It is the most common way to parallelise a transformation.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fanmap.svg" alt="FanMap runs fn on 3 workers and merges the results"></div>
+
+```go [Code]
 results := goflow.FanMap(s, 4, func(ctx context.Context, url string) (Response, error) {
     return httpGet(ctx, url)
 })
 ```
+
+:::
 
 This is equivalent to:
 
@@ -56,7 +60,11 @@ results := goflow.FanIn(goflow.MapEach(s.FanOut(4), fn))
 
 `FanMapFilter` does the same but with a MapFilter function, allowing you to skip items during the concurrent transformation:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fanmapfilter.svg" alt="FanMapFilter runs fn on 3 workers, skips b and merges the results"></div>
+
+```go [Code]
 results := goflow.FanMapFilter(s, 4, func(ctx context.Context, id string) (User, bool, error) {
     u, err := fetchUser(ctx, id)
     if err != nil {
@@ -66,11 +74,17 @@ results := goflow.FanMapFilter(s, 4, func(ctx context.Context, id string) (User,
 })
 ```
 
+:::
+
 ## Process -- Parallel Consumption
 
 `Process` is a terminal operator that consumes the stream with `n` long-lived workers. Unlike FanMap which produces a new stream, Process consumes the stream and collects errors.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/process.svg" alt="Process runs fn on 4 workers at the same time"></div>
+
+```go [Code]
 err := goflow.Of(ctx, urls...).Process(8, func(ctx context.Context, url string) error {
     resp, err := http.Get(url)
     if err != nil {
@@ -84,21 +98,19 @@ if err != nil {
 }
 ```
 
+:::
+
 Process runs `n` workers in a `gofuncy.Group`; it does not start one goroutine per element. Configure the group with `goflow.WithGroupOptions(...)`. All errors are collected and returned via `errors.Join`, so you see every failure rather than just the first. For long-lived streams, pass `goflow.WithErrorHandler(h)` instead: errors go to `h` and are not retained.
 
 ## Tee -- Broadcasting
 
 `Tee` sends every element to all `n` output streams. This is useful when you need to process the same data in multiple ways simultaneously.
 
-```
-                    +--- Stream[T] (log)
-                    |
-  Stream[T] --Tee---+
-                    |
-                    +--- Stream[T] (process)
-```
+::: code-group
 
-```go
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/tee.svg" alt="Tee(2) sends every element of [1, 2, 3] to 2 output streams"></div>
+
+```go [Code]
 copies := s.Tee(2)
 
 // Consumer 1: log everything
@@ -115,6 +127,8 @@ err := copies[1].ForEach(func(ctx context.Context, item Item) error {
 })
 ```
 
+:::
+
 ::: warning
 Tee blocks on the slowest consumer. Every output stream must be actively consumed, or the pipeline will deadlock. If consumers run at different speeds, consider inserting a buffered Pipe between Tee and the slower consumer.
 :::
@@ -125,9 +139,15 @@ For high-throughput pipelines, you can tune behavior with buffer sizes and gofun
 
 **Buffer sizes** on Pipe reduce blocking between producers and consumers:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/buffer.svg" alt="A Pipe with buffer 2 accepts a and b; Try(c) returns ErrFull"></div>
+
+```go [Code]
 send, s := goflow.Pipe[int](ctx, goflow.WithBuffer(1024)) // 1024-element buffer
 ```
+
+:::
 
 **WithOptions** propagates gofuncy options (error handlers, tracing) to all downstream operators:
 
@@ -141,7 +161,11 @@ s := goflow.Of(ctx, items...).WithOptions(
 
 ## Real-World Example: Parallel HTTP Fetching
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fetch.svg" alt="FanMapFilter fetches 3 URLs at the same time and skips the failed one"></div>
+
+```go [Code]
 package main
 
 import (
@@ -195,3 +219,5 @@ func main() {
     fmt.Printf("fetched %d responses\n", len(results))
 }
 ```
+
+:::

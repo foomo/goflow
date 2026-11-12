@@ -8,7 +8,11 @@
 
 `Pipe` returns a `*goflow.Sender[T]` and a readable stream. The sender is safe for concurrent use; concurrent senders do not serialize behind each other. The entry point closes when the parent context is done or when `Close` is called.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/pipe.svg" alt="Send hello and world into a Pipe; the stream gets [hello, world]"></div>
+
+```go [Code]
 send, s := goflow.Pipe[string](ctx)
 
 // Push values from a goroutine
@@ -21,6 +25,8 @@ go func() {
 results := s.Collect()
 fmt.Println(results) // [hello world]
 ```
+
+:::
 
 The `Sender` has three methods:
 
@@ -46,7 +52,11 @@ A Pipe stream and its stages run on the parent context and stop when it ends. To
 
 `PipeFunc` creates a Pipe and launches a consumer function in a managed goroutine. It returns only the `Sender`, making it ideal for fire-and-forget consumption patterns. It accepts the same options as `Pipe`. The consumer function and all stages it builds run on a context that the parent context does not cancel. `Close(ctx)` waits until the function returns.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/pipefunc.svg" alt="Send 42 and 43 into PipeFunc; fn handles each element"></div>
+
+```go [Code]
 send := goflow.PipeFunc[Event](ctx, func(ctx context.Context, s goflow.Stream[Event]) error {
     return s.ForEach(func(ctx context.Context, e Event) error {
         return store.Save(ctx, e)
@@ -58,13 +68,19 @@ send.Send(ctx, Event{Type: "click"})
 send.Send(ctx, Event{Type: "scroll"})
 ```
 
+:::
+
 ## FromFunc: Bridging External Sources
 
 `FromFunc` creates a stream from a blocking function that produces items via a `send` callback. This is the primary way to bridge external data sources -- message queues, file readers, network connections -- into the stream model.
 
 The function should block until it is done producing items and must respect context cancellation. `bufSize` controls backpressure: a full buffer blocks the send callback until the downstream consumer catches up.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fromfunc-bridge.svg" alt="FromFunc bridges a subscriber; Filter keeps orders; ForEach processes them"></div>
+
+```go [Code]
 // Bridge a message subscriber into a stream
 s := goflow.FromFunc(ctx, 16, func(ctx context.Context, send func(Event) error) error {
     return sub.Subscribe(ctx, "events", func(ctx context.Context, msg courier.Message[Event]) error {
@@ -79,6 +95,8 @@ err := s.Filter(func(_ context.Context, e Event) bool {
     return processOrder(ctx, e)
 })
 ```
+
+:::
 
 ::: tip
 Choose `bufSize` based on your producer's burst rate and your consumer's throughput. A larger buffer absorbs temporary speed mismatches but uses more memory.
@@ -121,7 +139,11 @@ By default, all intermediate operators use unbuffered channels. This provides na
 
 Use `Pipe` with a buffer size to introduce buffering at specific points in the pipeline:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/buffer.svg" alt="A Pipe with buffer 2 accepts a and b; Try(c) returns ErrFull"></div>
+
+```go [Code]
 send, buffered := goflow.Pipe[int](ctx, goflow.WithBuffer(1024))
 
 // Push from a producer goroutine
@@ -136,6 +158,8 @@ go func() {
 
 result := buffered.Filter(filterFn).Collect()
 ```
+
+:::
 
 ::: warning
 Buffering shifts backpressure from blocking to memory usage. A large buffer can mask a slow consumer while consuming significant memory. Monitor your pipeline's memory footprint in production.
@@ -198,7 +222,11 @@ goflow interoperates with Go 1.23 range-over-function iterators through three me
 
 `Iter` returns an `iter.Seq[T]` that yields each element. The iterator drains the stream and can only be used once.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/iter.svg" alt="Iter yields 1, 2, 3 to a range loop"></div>
+
+```go [Code]
 s := goflow.Of(ctx, 1, 2, 3)
 
 for v := range s.Iter() {
@@ -206,11 +234,17 @@ for v := range s.Iter() {
 }
 ```
 
+:::
+
 ### Iter2 -- Stream to iter.Seq2
 
 `Iter2` returns an `iter.Seq2[int, T]` that yields each element with its zero-based index.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/iter2.svg" alt="Iter2 yields 0 a, 1 b, 2 c to a range loop"></div>
+
+```go [Code]
 s := goflow.Of(ctx, "a", "b", "c")
 
 for i, v := range s.Iter2() {
@@ -218,11 +252,17 @@ for i, v := range s.Iter2() {
 }
 ```
 
+:::
+
 ### FromIter -- iter.Seq to Stream
 
 `FromIter` creates a stream from any `iter.Seq[T]`, enabling you to use stream operators on standard library iterators:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/fromiter.svg" alt="FromIter turns an iter.Seq that yields 1, 2, 3 into a stream [1, 2, 3]"></div>
+
+```go [Code]
 import "slices"
 
 s := goflow.FromIter(ctx, slices.Values([]int{10, 20, 30}))
@@ -230,6 +270,8 @@ doubled := goflow.Map(s, func(_ context.Context, n int) (int, error) {
     return n * 2, nil
 })
 ```
+
+:::
 
 ::: tip
 Use `Iter()` when you want to hand off stream data to code that expects a range-over-function iterator. Use `FromIter()` when you want to pull data from an iterator into a stream pipeline.
@@ -239,7 +281,11 @@ Use `Iter()` when you want to hand off stream data to code that expects a range-
 
 Because `Stream[T]` is a plain struct, you can pass streams across package boundaries and compose pipelines modularly.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/compose.svg" alt="ingest, transform and main each add one stage to the pipeline"></div>
+
+```go [Code]
 // package ingest
 func EventStream(ctx context.Context) goflow.Stream[Event] {
     return goflow.FromFunc(ctx, 64, func(ctx context.Context, send func(Event) error) error {
@@ -269,5 +315,7 @@ func main() {
     }
 }
 ```
+
+:::
 
 Each package defines its own segment of the pipeline. The stream carries its context and options through, so the composed pipeline behaves as a single unit with consistent cancellation and error handling.

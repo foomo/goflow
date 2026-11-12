@@ -89,7 +89,11 @@ func main() {
 
 Here is a complete, runnable example that creates a stream of integers, filters for even numbers, doubles them, and collects the results:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/basic-pipeline.svg" alt="Filter(even) then Map(n * 2) turns [1, 2, 3, 4] into [4, 8]"></div>
+
+```go [Code]
 package main
 
 import (
@@ -116,6 +120,8 @@ func main() {
 }
 ```
 
+:::
+
 ## Terminal Operations
 
 Terminal operations consume the stream and produce a final result. Once a terminal operation runs, the stream is fully drained.
@@ -138,4 +144,18 @@ Terminal operations consume the stream and produce a final result. Once a termin
 
 ::: tip
 `FindFirst`, `FindFirstMatch`, `AnyMatch`, and `NoneMatch` short-circuit: they stop consuming the stream as soon as the result is determined.
+:::
+
+::: code-group
+
+<div class="vp-block active" data-title="Collect"><img src="./diagrams/collect.svg" alt="Collect turns [1, 2, 3] into the slice []int{1, 2, 3}"></div>
+
+<div class="vp-block" data-title="Count"><img src="./diagrams/count.svg" alt="Count of [1, 2, 3] is 3"></div>
+
+<div class="vp-block" data-title="Reduce"><img src="./diagrams/reduce.svg" alt="Reduce(0, acc + n) of [1, 2, 3] is 6"></div>
+
+<div class="vp-block" data-title="FindFirst"><img src="./diagrams/findfirst.svg" alt="FindFirst of [7, 8, 9] is 7, true"></div>
+
+<div class="vp-block" data-title="AllMatch"><img src="./diagrams/allmatch.svg" alt="AllMatch(n &gt; 0) of [3, 5, -1, 8] is false"></div>
+
 :::

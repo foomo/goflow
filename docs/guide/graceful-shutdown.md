@@ -43,7 +43,11 @@ s.Count()                      // 0
 
 For long-running services, use `signal.NotifyContext` to tie the pipeline to OS signals:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/cancel-foreach.svg" alt="A signal cancels ctx and ForEach stops"></div>
+
+```go [Code]
 ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 defer stop()
 
@@ -59,13 +63,19 @@ if err != nil && !errors.Is(err, context.Canceled) {
 log.Println("shutdown complete")
 ```
 
+:::
+
 When `SIGINT` or `SIGTERM` arrives, the context cancels and the pipeline drains cleanly.
 
 ## Timeout-Based Shutdown
 
 Use `context.WithTimeout` for pipelines that must complete within a deadline:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/cancel-collect.svg" alt="When ctx ends, Collect returns the elements so far"></div>
+
+```go [Code]
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
@@ -76,9 +86,13 @@ results := goflow.Generate(ctx, produceItem).
 fmt.Printf("collected %d items before deadline\n", len(results))
 ```
 
+:::
+
 ## Partial Results and In-Flight Items
 
 When the context cancels:
+
+![When ctx ends, Collect returns the elements so far](./diagrams/cancel-collect.svg)
 
 - **`Collect()`** returns elements received so far. It prioritizes draining buffered channel items before checking cancellation, so you get as much data as possible.
 - **`ForEach()` / `Process()`** stop accepting new items and return errors. `Process` collects all worker errors via `errors.Join`, unless `goflow.WithErrorHandler` is set.
@@ -96,7 +110,21 @@ When the context cancels:
 
 Sending after close returns `goflow.ErrClosed`. When the parent context closed the pipe, the error also wraps the context cause, so `errors.Is(err, context.Canceled)` works.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/drain.svg" alt="On Close, PipeFunc drains the queued events in batches"></div>
+
+```text [Steps]
+Try(event) from HTTP handlers  ─► PipeFunc ─►  Batch ─►  ForEach: post with retry
+
+On shutdown, Close(ctx):
+1. The entry point closes. Send and Try return ErrClosed.
+2. fn finishes the queued events. The last batch flushes.
+3. Close returns when fn returns.
+(If ctx ends first, Close cancels fn and returns ctx.Err().)
+```
+
+```go [Code]
 send := goflow.PipeFunc[Event](ctx, func(ctx context.Context, events goflow.Stream[Event]) error {
     return goflow.Batch(events, goflow.MaxItems(200), goflow.MaxBytes(400<<10, eventSize), goflow.MaxWait(5*time.Second)).
         ForEach(func(ctx context.Context, b []Event) error {
@@ -107,6 +135,8 @@ send := goflow.PipeFunc[Event](ctx, func(ctx context.Context, events goflow.Stre
 // HTTP handler: _ = send.Try(r.Context(), event)
 // shutdown (keel closer): send.Close(ctx)
 ```
+
+:::
 
 - `Try` never blocks the HTTP handler. When the buffer is full, it returns `goflow.ErrFull` and the event counts as dropped.
 - `Batch` flushes the partial batch when the entry point closes, so no queued event is lost.

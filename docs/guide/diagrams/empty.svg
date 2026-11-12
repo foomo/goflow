@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 122" width="390" height="122" role="img" aria-label="Empty returns a closed stream with no elements">
+<style>
+text{font:600 15px ui-monospace,SFMono-Regular,Menlo,monospace;text-anchor:middle;dominant-baseline:central;fill:#303446}
+.lbl{font:500 13px ui-sans-serif,system-ui,sans-serif;fill:#838ba7;text-anchor:start}
+.note{font:500 15px ui-sans-serif,system-ui,sans-serif;fill:#838ba7;text-anchor:start}
+.op{fill:#c6d0f5}
+.in{fill:#8caaee}.mid{fill:#ca9ee6}.out{fill:#a6d189}.err{fill:#e78284}
+.box{fill:#414559;stroke:#838ba7;stroke-width:1.5}
+.wire{stroke:#838ba7;stroke-width:1.5;stroke-dasharray:4 4;fill:none}
+
+@media (prefers-reduced-motion:reduce){g{animation:none!important}.k{opacity:1}.h{opacity:0}}
+</style>
+<path class="wire" d="M20.0 48.0H56.0"/><path class="wire" d="M156.0 48.0H192.0"/><text class="lbl" x="20.0" y="48.0"></text><text class="lbl" x="192.0" y="48.0"></text><rect class="box" x="56.0" y="20.0" width="100.0" height="56.0" rx="10"/><text class="op" x="106.0" y="48.0">Empty</text><text class="note" x="20" y="106.0">The stream closes at once. It has no elements.</text>
+</svg>
