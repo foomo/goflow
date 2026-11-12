@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -31,7 +31,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-${{ runner.os }}-${{ hashFiles('**/go.mod') }}
+          key: go-${{ runner.os }}-${{ hashFiles('.mise.toml', '**/go.sum') }}
           restore-keys: |
             go-${{ runner.os }}-
 
@@ -42,7 +42,7 @@ jobs:
           path: ~/.cache/golangci-lint
           key: golangci-lint-${{ runner.os }}-${{ hashFiles('**/go.mod') }}
           restore-keys: |
-            golangci-lint-${{ runner.os }}--
+            golangci-lint-${{ runner.os }}-
 
       - name: Run tidy
         run: make tidy && git diff --exit-code
@@ -55,6 +55,9 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Run audit
+        run: make audit
 
       # https://github.com/codecov/codecov-action/releases
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0

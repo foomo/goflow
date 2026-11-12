@@ -124,7 +124,7 @@ godocs:
 ## Run security audit
 audit:
 	@echo "〉security audit"
-	@osv-scanner --call-analysis=all --config=.osv-scanner.toml $(if $(GITHUB_ACTIONS),--format=gh-annotations) -r .
+	@govulncheck -tags=safe ./...
 
 ### Utils
 
