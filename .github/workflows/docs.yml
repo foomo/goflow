@@ -13,14 +13,19 @@ permissions:
 
 jobs:
   docs:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v6
+      # https://github.com/actions/checkout/releases
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
-      - uses: oven-sh/setup-bun@v2
+      # https://github.com/jdx/mise-action/releases
+      - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+        with:
+          install_args: bun
 
       - name: Install dependencies
         working-directory: docs
@@ -30,12 +35,16 @@ jobs:
         working-directory: docs
         run: bun run build
 
-      - uses: actions/configure-pages@v6
+      # https://github.com/actions/configure-pages/releases
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
-      - uses: actions/upload-pages-artifact@v4
+      # https://github.com/actions/upload-pages-artifact/releases
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
         with:
           path: docs/.vitepress/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        # https://github.com/actions/deploy-pages/releases
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+

@@ -1,10 +1,6 @@
 package goflow
 
-import (
-	"context"
-
-	"github.com/foomo/gofuncy"
-)
+import "context"
 
 // Concat returns a stream that emits all elements from each input stream
 // in order: first all elements from streams[0], then streams[1], etc.
@@ -14,30 +10,15 @@ func Concat[T any](streams ...Stream[T]) Stream[T] {
 		return Empty[T]()
 	}
 
-	ctx := streams[0].ctx
-	opts := streams[0].opts
-
-	if ctx.Err() != nil {
-		return closed[T](ctx)
-	}
-
-	source := make(chan T)
-
-	gofuncy.Go(ctx, func(ctx context.Context) error {
-		defer close(source)
-
+	return stage(streams[0], "goflow.concat", func(_ context.Context, emit func(T) bool) error {
 		for _, s := range streams {
-			for item := range s.source {
-				select {
-				case <-ctx.Done():
+			for item := range s.items() {
+				if !emit(item) {
 					return nil
-				case source <- item:
 				}
 			}
 		}
 
 		return nil
-	}, append(opts, gofuncy.WithName("goflow.concat"))...)
-
-	return Stream[T]{ctx: ctx, source: source, opts: opts}
+	})
 }

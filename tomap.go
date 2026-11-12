@@ -5,7 +5,7 @@ package goflow
 func ToMap[T any, K comparable, V any](s Stream[T], key func(T) K, value func(T) V) map[K]V {
 	out := make(map[K]V)
 
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			break
 		}

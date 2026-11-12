@@ -18,6 +18,7 @@ export default defineConfig({
 		outline: [2, 4],
 		nav: [
 			{ text: 'Guide', link: '/guide/getting-started' },
+			{ text: 'Examples', link: '/examples/' },
 			{ text: 'API', link: '/api/reference' },
 		],
 		sidebar: [
@@ -30,6 +31,22 @@ export default defineConfig({
 					{ text: 'Error Handling', link: '/guide/error-handling' },
 					{ text: 'Graceful Shutdown', link: '/guide/graceful-shutdown' },
 					{ text: 'Advanced', link: '/guide/advanced' },
+				],
+			},
+			{
+				text: 'Examples',
+				link: '/examples/',
+				items: [
+					{ text: 'Parallel HTTP Requests', link: '/examples/parallel-http-requests' },
+					{ text: 'File Import with Bulk Inserts', link: '/examples/file-import-with-bulk-inserts' },
+					{ text: 'Background Job Queue', link: '/examples/background-job-queue' },
+					{ text: 'Event Buffering for a Slow Sink', link: '/examples/event-buffering-for-a-slow-sink' },
+					{ text: 'Paginated API Crawl', link: '/examples/paginated-api-crawl' },
+					{ text: 'Rate-Limited Calls with Deduplication', link: '/examples/rate-limited-calls-with-deduplication' },
+					{ text: 'Merge Multiple Sources', link: '/examples/merge-multiple-sources' },
+					{ text: 'Broadcast to Multiple Sinks', link: '/examples/broadcast-to-multiple-sinks' },
+					{ text: 'Moving Average and Anomaly Detection', link: '/examples/moving-average-and-anomaly-detection' },
+					{ text: 'First Match with Early Exit', link: '/examples/first-match-with-early-exit' },
 				],
 			},
 			{

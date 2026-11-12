@@ -7,7 +7,7 @@ import "context"
 func Reduce[T, U any](s Stream[T], initial U, fn func(context.Context, U, T) (U, error)) (U, error) {
 	acc := initial
 
-	for item := range s.source {
+	for item := range s.items() {
 		if s.ctx.Err() != nil {
 			return acc, s.ctx.Err()
 		}

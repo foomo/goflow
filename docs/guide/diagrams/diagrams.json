@@ -1,0 +1,3507 @@
+{
+ "of": {
+  "op": "Of",
+  "in": [
+   [
+    "values",
+    [
+     "\"a\"",
+     "\"b\"",
+     "\"c\""
+    ]
+   ]
+  ],
+  "emit": [
+   "a",
+   "b",
+   "c"
+  ],
+  "alt": "Of turns the values a, b, c into a stream [a, b, c]"
+ },
+ "from": {
+  "op": "From",
+  "in": [
+   [
+    "chan",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "emit": [
+   "1",
+   "2",
+   "3"
+  ],
+  "note": "The stream closes when the channel closes.",
+  "alt": "From turns channel values 1, 2, 3 into a stream [1, 2, 3]"
+ },
+ "fromiter": {
+  "op": "FromIter",
+  "in": [
+   [
+    "iter.Seq",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "emit": [
+   "1",
+   "2",
+   "3"
+  ],
+  "alt": "FromIter turns an iter.Seq that yields 1, 2, 3 into a stream [1, 2, 3]"
+ },
+ "fromfunc": {
+  "op": "FromFunc",
+  "in": [
+   [
+    "fn",
+    [
+     "send(0)",
+     "send(1)",
+     "send(2)"
+    ]
+   ]
+  ],
+  "emit": [
+   "0",
+   "1",
+   "2"
+  ],
+  "note": "fn sends up to 99, then returns nil. The stream then closes.",
+  "alt": "FromFunc turns each send call of fn into a stream element"
+ },
+ "generate": {
+  "op": "Generate",
+  "in": [
+   [
+    "fn()",
+    [
+     "42",
+     "7",
+     "93"
+    ]
+   ]
+  ],
+  "emit": [
+   "42",
+   "7",
+   "93"
+  ],
+  "note": "The stream never ends by itself. It stops with ctx.",
+  "alt": "Generate calls fn for each element: [42, 7, 93, ...]"
+ },
+ "iterate": {
+  "op": "Iterate(n * 2)",
+  "in": [
+   [
+    "seed",
+    [
+     "1"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "1"
+    ]
+   },
+   {
+    "emit": [
+     "2"
+    ]
+   },
+   {
+    "emit": [
+     "4"
+    ]
+   },
+   {
+    "emit": [
+     "8"
+    ]
+   }
+  ],
+  "note": "The stream never ends by itself. It stops with ctx.",
+  "alt": "Iterate starts at seed 1 and applies n * 2: [1, 2, 4, 8, ...]"
+ },
+ "ofmap": {
+  "op": "OfMap",
+  "in": [
+   [
+    "map",
+    [
+     "x: 1",
+     "y: 2"
+    ]
+   ]
+  ],
+  "emit": [
+   "{x 1}",
+   "{y 2}"
+  ],
+  "note": "The order is random, as for a Go map.",
+  "alt": "OfMap turns map entries into KeyValue elements"
+ },
+ "empty": {
+  "op": "Empty",
+  "in": [
+   [
+    "",
+    []
+   ]
+  ],
+  "steps": [],
+  "note": "The stream closes at once. It has no elements.",
+  "alt": "Empty returns a closed stream with no elements"
+ },
+ "pipe": {
+  "op": "Pipe",
+  "in": [
+   [
+    "Send",
+    [
+     "\"hello\"",
+     "\"world\""
+    ]
+   ]
+  ],
+  "out": [
+   "stream"
+  ],
+  "emit": [
+   "hello",
+   "world"
+  ],
+  "note": "Close(ctx) closes the entry point. The stream then closes.",
+  "alt": "Send hello and world into a Pipe; the stream gets [hello, world]"
+ },
+ "pipefunc": {
+  "ops": [
+   "PipeFunc",
+   "fn: ForEach"
+  ],
+  "in": [
+   [
+    "Send",
+    [
+     "42",
+     "43"
+    ]
+   ]
+  ],
+  "mid": [
+   1
+  ],
+  "out": [
+   "handled"
+  ],
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "42"
+     ],
+     [
+      0,
+      "42"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "43"
+     ],
+     [
+      0,
+      "43"
+     ]
+    ]
+   }
+  ],
+  "stagger": 1.2,
+  "note": "fn runs in its own goroutine. Close(ctx) waits until fn returns.",
+  "alt": "Send 42 and 43 into PipeFunc; fn handles each element"
+ },
+ "map": {
+  "op": "Map(n * 2)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "emit": [
+   "2",
+   "4",
+   "6"
+  ],
+  "alt": "Map(n * 2) turns [1, 2, 3] into [2, 4, 6]"
+ },
+ "flatmap": {
+  "op": "FlatMap(fn)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "1",
+     "10",
+     "100"
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "2",
+     "20",
+     "200"
+    ]
+   }
+  ],
+  "alt": "FlatMap turns [1, 2] into [1, 10, 100, 2, 20, 200]",
+  "note": "fn(n) returns a stream of n, n*10, n*100."
+ },
+ "mapfilter": {
+  "op": "MapFilter(Atoi)",
+  "in": [
+   [
+    "",
+    [
+     "\"1\"",
+     "\"x\"",
+     "\"3\""
+    ]
+   ]
+  ],
+  "emit": [
+   "1",
+   null,
+   "3"
+  ],
+  "note": "\"x\" does not parse, so fn skips it.",
+  "alt": "MapFilter(Atoi) turns [\"1\", \"x\", \"3\"] into [1, 3]"
+ },
+ "flatten": {
+  "op": "Flatten",
+  "in": [
+   [
+    "",
+    [
+     "[1 2]",
+     "[3 4]"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "1",
+     "2"
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "3",
+     "4"
+    ]
+   }
+  ],
+  "alt": "Flatten turns [[1 2], [3 4]] into [1, 2, 3, 4]"
+ },
+ "reverse": {
+  "op": "Reverse",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "3",
+     "2",
+     "1"
+    ],
+    "wait": 0.5
+   }
+  ],
+  "note": "Reverse waits for the end of the stream. It keeps all elements in memory.",
+  "alt": "Reverse turns [1, 2, 3] into [3, 2, 1]"
+ },
+ "sort": {
+  "op": "Sort",
+  "in": [
+   [
+    "",
+    [
+     "3",
+     "1",
+     "2"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "1",
+     "2",
+     "3"
+    ],
+    "wait": 0.5
+   }
+  ],
+  "note": "Sort waits for the end of the stream. It keeps all elements in memory.",
+  "alt": "Sort turns [3, 1, 2] into [1, 2, 3]"
+ },
+ "split": {
+  "op": "Split(2)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "[1 2]"
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     "[3 4]"
+    ]
+   },
+   {
+    "take": [
+     4
+    ]
+   },
+   {
+    "emit": [
+     "[5]"
+    ],
+    "wait": 0.5
+   }
+  ],
+  "note": "The last batch can have fewer elements.",
+  "alt": "Split(2) turns [1, 2, 3, 4, 5] into [[1 2], [3 4], [5]]"
+ },
+ "window": {
+  "op": "Window(3)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "[1 2 3]"
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     "[2 3 4]"
+    ]
+   }
+  ],
+  "alt": "Window(3) turns [1, 2, 3, 4] into [[1 2 3], [2 3 4]]"
+ },
+ "batch": {
+  "op": "Batch(MaxItems(3))",
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "[a b c]"
+    ]
+   },
+   {
+    "take": [
+     3
+    ]
+   },
+   {
+    "take": [
+     4
+    ]
+   },
+   {
+    "emit": [
+     "[d e]"
+    ],
+    "wait": 1.0
+   }
+  ],
+  "note": "[a b c] is full. [d e] flushes when the input closes, or when MaxWait ends.",
+  "alt": "Batch(MaxItems(3)) turns [a, b, c, d, e] into [[a b c], [d e]]"
+ },
+ "filter": {
+  "op": "Filter(even)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "emit": [
+   null,
+   "2",
+   null,
+   "4"
+  ],
+  "alt": "Filter(even) turns [1, 2, 3, 4] into [2, 4]"
+ },
+ "distinct": {
+  "op": "Distinct(key)",
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "a",
+     "c",
+     "b"
+    ]
+   ]
+  ],
+  "emit": [
+   "a",
+   "b",
+   null,
+   "c",
+   null
+  ],
+  "note": "The first element with a key wins.",
+  "alt": "Distinct turns [a, b, a, c, b] into [a, b, c]"
+ },
+ "take": {
+  "op": "Take(3)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "1"
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "2"
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "3"
+    ]
+   }
+  ],
+  "note": "After 3 elements the stream closes. 4 and 5 are not read.",
+  "alt": "Take(3) turns [1, 2, 3, 4, 5] into [1, 2, 3]"
+ },
+ "skip": {
+  "op": "Skip(2)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5"
+    ]
+   ]
+  ],
+  "emit": [
+   null,
+   null,
+   "3",
+   "4",
+   "5"
+  ],
+  "alt": "Skip(2) turns [1, 2, 3, 4, 5] into [3, 4, 5]"
+ },
+ "peek": {
+  "op": "Peek(log)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "output",
+   "fn"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "1"
+     ],
+     [
+      1,
+      "log 1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      0,
+      "2"
+     ],
+     [
+      1,
+      "log 2"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      0,
+      "3"
+     ],
+     [
+      1,
+      "log 3"
+     ]
+    ]
+   }
+  ],
+  "note": "fn sees each element. The element passes on unchanged.",
+  "alt": "Peek calls fn for each of [1, 2, 3] and passes them on unchanged"
+ },
+ "throttle": {
+  "op": "Throttle(100ms)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "1"
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "2"
+    ],
+    "wait": 1.2
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "3"
+    ],
+    "wait": 1.2
+   }
+  ],
+  "note": "One element every 100ms. No element is dropped.",
+  "alt": "Throttle(100ms) passes [1, 2, 3] on, one element every 100ms"
+ },
+ "collect": {
+  "op": "Collect",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "[]int{1, 2, 3}"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "alt": "Collect turns [1, 2, 3] into the slice []int{1, 2, 3}"
+ },
+ "count": {
+  "op": "Count",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "3"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "alt": "Count of [1, 2, 3] is 3"
+ },
+ "foreach": {
+  "op": "ForEach(fn)",
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "out": [
+   "calls"
+  ],
+  "emit": [
+   "fn(a)",
+   "fn(b)",
+   "fn(c)"
+  ],
+  "note": "ForEach returns nil, or the first error.",
+  "alt": "ForEach calls fn(a), fn(b), fn(c)"
+ },
+ "reduce": {
+  "op": "Reduce(0, acc + n)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "6"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "note": "acc: 0+1 = 1, 1+2 = 3, 3+3 = 6",
+  "alt": "Reduce(0, acc + n) of [1, 2, 3] is 6"
+ },
+ "tomap": {
+  "op": "ToMap(ID)",
+  "in": [
+   [
+    "",
+    [
+     "{1 A}",
+     "{2 B}",
+     "{1 C}"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "{1: C, 2: B}"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "note": "For the same key, the last value wins.",
+  "alt": "ToMap turns [{1 A}, {2 B}, {1 C}] into the map {1: C, 2: B}"
+ },
+ "findfirst": {
+  "op": "FindFirst",
+  "in": [
+   [
+    "",
+    [
+     "7",
+     "8",
+     "9"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     "7, true"
+    ]
+   }
+  ],
+  "note": "FindFirst stops after the first element.",
+  "alt": "FindFirst of [7, 8, 9] is 7, true"
+ },
+ "findfirstmatch": {
+  "op": "FindFirstMatch(admin)",
+  "in": [
+   [
+    "",
+    [
+     "bob",
+     "ann*",
+     "eve"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "ann, true"
+    ]
+   }
+  ],
+  "note": "* marks the admin. FindFirstMatch stops at the first match.",
+  "alt": "FindFirstMatch(admin) of [bob, ann, eve] is ann, true"
+ },
+ "allmatch": {
+  "op": "AllMatch(n > 0)",
+  "in": [
+   [
+    "",
+    [
+     "3",
+     "5",
+     "-1",
+     "8"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "false"
+    ]
+   }
+  ],
+  "note": "AllMatch stops at -1, the first element that does not match.",
+  "alt": "AllMatch(n > 0) of [3, 5, -1, 8] is false"
+ },
+ "anymatch": {
+  "op": "AnyMatch(n < 0)",
+  "in": [
+   [
+    "",
+    [
+     "3",
+     "-2",
+     "5"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "true"
+    ]
+   }
+  ],
+  "note": "AnyMatch stops at -2, the first match.",
+  "alt": "AnyMatch(n < 0) of [3, -2, 5] is true"
+ },
+ "nonematch": {
+  "op": "NoneMatch(is err)",
+  "in": [
+   [
+    "",
+    [
+     "ok",
+     "err",
+     "ok"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "false"
+    ]
+   }
+  ],
+  "note": "NoneMatch stops at err, the first match.",
+  "alt": "NoneMatch(is err) of [ok, err, ok] is false"
+ },
+ "min": {
+  "op": "Min",
+  "in": [
+   [
+    "",
+    [
+     "3",
+     "1",
+     "2"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "1, true"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "alt": "Min of [3, 1, 2] is 1, true"
+ },
+ "max": {
+  "op": "Max",
+  "in": [
+   [
+    "",
+    [
+     "3",
+     "1",
+     "2"
+    ]
+   ]
+  ],
+  "out": [
+   "result"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     "3, true"
+    ],
+    "wait": 0.3
+   }
+  ],
+  "alt": "Max of [3, 1, 2] is 3, true"
+ },
+ "process": {
+  "op": "Process(4, fn)",
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ]
+   ]
+  ],
+  "out": [
+   "worker 1",
+   "worker 2",
+   "worker 3",
+   "worker 4"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "fn(a)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      1,
+      "fn(b)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      2,
+      "fn(c)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     [
+      3,
+      "fn(d)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     4
+    ],
+    "emit": [
+     [
+      0,
+      "fn(e)"
+     ]
+    ],
+    "wait": 0.8
+   }
+  ],
+  "note": "A free worker takes the next element. Process returns all errors joined, or nil.",
+  "alt": "Process runs fn on 4 workers at the same time"
+ },
+ "fanout": {
+  "op": "FanOut(3)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6"
+    ]
+   ]
+  ],
+  "out": [
+   "out[0]",
+   "out[1]",
+   "out[2]"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      1,
+      "2"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      2,
+      "3"
+     ]
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     [
+      0,
+      "4"
+     ]
+    ]
+   },
+   {
+    "take": [
+     4
+    ],
+    "emit": [
+     [
+      1,
+      "5"
+     ]
+    ]
+   },
+   {
+    "take": [
+     5
+    ],
+    "emit": [
+     [
+      2,
+      "6"
+     ]
+    ]
+   }
+  ],
+  "note": "Round-robin. FanOut blocks on the slowest output stream.",
+  "alt": "FanOut(3) sends [1..6] round-robin to 3 output streams"
+ },
+ "fanin": {
+  "op": "FanIn",
+  "in": [
+   [
+    "in[0]",
+    [
+     "1",
+     "4"
+    ]
+   ],
+   [
+    "in[1]",
+    [
+     "2"
+    ]
+   ],
+   [
+    "in[2]",
+    [
+     "3"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     [
+      0,
+      0
+     ]
+    ],
+    "emit": [
+     "1"
+    ]
+   },
+   {
+    "take": [
+     [
+      1,
+      0
+     ]
+    ],
+    "emit": [
+     "2"
+    ]
+   },
+   {
+    "take": [
+     [
+      2,
+      0
+     ]
+    ],
+    "emit": [
+     "3"
+    ]
+   },
+   {
+    "take": [
+     [
+      0,
+      1
+     ]
+    ],
+    "emit": [
+     "4"
+    ]
+   }
+  ],
+  "note": "Elements come out when they are ready. The order varies.",
+  "alt": "FanIn merges 3 streams into one stream"
+ },
+ "fanmap": {
+  "ops": [
+   "FanOut(3)",
+   "fn",
+   "FanIn"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   3
+  ],
+  "stagger": 0.5,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "a"
+     ],
+     [
+      0,
+      "A",
+      0.9
+     ],
+     [
+      0,
+      "A"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "b"
+     ],
+     [
+      1,
+      "B",
+      1.8
+     ],
+     [
+      0,
+      "B"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "c"
+     ],
+     [
+      2,
+      "C",
+      0.1
+     ],
+     [
+      0,
+      "C"
+     ]
+    ]
+   }
+  ],
+  "note": "3 workers run fn at the same time. fn(a) = A. The output order varies.",
+  "alt": "FanMap runs fn on 3 workers and merges the results",
+  "out": [
+   ""
+  ]
+ },
+ "fanmapfilter": {
+  "ops": [
+   "FanOut(3)",
+   "fn",
+   "FanIn"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   3
+  ],
+  "stagger": 0.5,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "a"
+     ],
+     [
+      0,
+      "A",
+      0.9
+     ],
+     [
+      0,
+      "A"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "b"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "c"
+     ],
+     [
+      2,
+      "C",
+      0.1
+     ],
+     [
+      0,
+      "C"
+     ]
+    ]
+   }
+  ],
+  "note": "fn(a) = A. fn skips b. The output order varies.",
+  "alt": "FanMapFilter runs fn on 3 workers, skips b and merges the results",
+  "out": [
+   ""
+  ]
+ },
+ "tee": {
+  "op": "Tee(2)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "copies[0]",
+   "copies[1]"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "1"
+     ],
+     [
+      1,
+      "1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      0,
+      "2"
+     ],
+     [
+      1,
+      "2"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      0,
+      "3"
+     ],
+     [
+      1,
+      "3"
+     ]
+    ]
+   }
+  ],
+  "note": "Each output stream gets every element. Tee blocks on the slowest one.",
+  "alt": "Tee(2) sends every element of [1, 2, 3] to 2 output streams"
+ },
+ "mapeach": {
+  "ops": [
+   "fn"
+  ],
+  "in": [
+   [
+    "streams[0]",
+    [
+     "1",
+     "2"
+    ]
+   ],
+   [
+    "streams[1]",
+    [
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "out": [
+   "[0]",
+   "[1]"
+  ],
+  "stagger": 0.6,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "fn(1)"
+     ]
+    ]
+   },
+   {
+    "from": [
+     1,
+     0
+    ],
+    "hops": [
+     [
+      1,
+      "fn(3)"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "fn(2)"
+     ]
+    ]
+   },
+   {
+    "from": [
+     1,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "fn(4)"
+     ]
+    ]
+   }
+  ],
+  "alt": "MapEach applies fn to each stream in a slice"
+ },
+ "mapfiltereach": {
+  "ops": [
+   "fn"
+  ],
+  "in": [
+   [
+    "streams[0]",
+    [
+     "1",
+     "2"
+    ]
+   ],
+   [
+    "streams[1]",
+    [
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "out": [
+   "[0]",
+   "[1]"
+  ],
+  "stagger": 0.6,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "fn(1)"
+     ]
+    ]
+   },
+   {
+    "from": [
+     1,
+     0
+    ],
+    "hops": [
+     [
+      1,
+      "fn(3)"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     null
+    ]
+   },
+   {
+    "from": [
+     1,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "fn(4)"
+     ]
+    ]
+   }
+  ],
+  "note": "fn skips 2.",
+  "alt": "MapFilterEach applies fn to each stream in a slice and skips 2"
+ },
+ "concat": {
+  "op": "Concat",
+  "in": [
+   [
+    "s1",
+    [
+     "1",
+     "2"
+    ]
+   ],
+   [
+    "s2",
+    [
+     "3",
+     "4"
+    ]
+   ],
+   [
+    "s3",
+    [
+     "5"
+    ]
+   ]
+  ],
+  "steps": [
+   {
+    "take": [
+     [
+      0,
+      0
+     ]
+    ],
+    "emit": [
+     "1"
+    ]
+   },
+   {
+    "take": [
+     [
+      0,
+      1
+     ]
+    ],
+    "emit": [
+     "2"
+    ]
+   },
+   {
+    "take": [
+     [
+      1,
+      0
+     ]
+    ],
+    "emit": [
+     "3"
+    ]
+   },
+   {
+    "take": [
+     [
+      1,
+      1
+     ]
+    ],
+    "emit": [
+     "4"
+    ]
+   },
+   {
+    "take": [
+     [
+      2,
+      0
+     ]
+    ],
+    "emit": [
+     "5"
+    ]
+   }
+  ],
+  "note": "All of s1 first, then s2, then s3.",
+  "alt": "Concat joins s1, s2, s3 in order: [1, 2, 3, 4, 5]"
+ },
+ "basic-pipeline": {
+  "ops": [
+   "Filter(even)",
+   "Map(n * 2)"
+  ],
+  "in": [
+   [
+    "Of",
+    [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "mid": [
+   1
+  ],
+  "stagger": 0.7,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "2"
+     ],
+     [
+      0,
+      "4"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     3
+    ],
+    "hops": [
+     [
+      0,
+      "4"
+     ],
+     [
+      0,
+      "8"
+     ]
+    ]
+   }
+  ],
+  "note": "The example uses 1 to 10. Collect then returns [4 8 12 16 20].",
+  "alt": "Filter(even) then Map(n * 2) turns [1, 2, 3, 4] into [4, 8]"
+ },
+ "fanout-fanin": {
+  "ops": [
+   "FanOut(3)",
+   "n * n",
+   "FanIn"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3",
+     "4"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   3
+  ],
+  "stagger": 0.5,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "1"
+     ],
+     [
+      0,
+      "1",
+      0.4
+     ],
+     [
+      0,
+      "1"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "2"
+     ],
+     [
+      1,
+      "4",
+      0.9
+     ],
+     [
+      0,
+      "4"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "3"
+     ],
+     [
+      2,
+      "9",
+      0.1
+     ],
+     [
+      0,
+      "9"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     3
+    ],
+    "hops": [
+     [
+      0,
+      "4"
+     ],
+     [
+      0,
+      "16",
+      0.2
+     ],
+     [
+      0,
+      "16"
+     ]
+    ]
+   }
+  ],
+  "note": "The example uses 1 to 9. The output order varies.",
+  "alt": "FanOut(3), then n * n on each part, then FanIn",
+  "out": [
+   ""
+  ]
+ },
+ "mapfilter-stop": {
+  "op": "MapFilter (return err)",
+  "in": [
+   [
+    "",
+    [
+     "\"1\"",
+     "\"x\"",
+     "\"3\""
+    ]
+   ]
+  ],
+  "out": [
+   "output",
+   "error"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      1,
+      "parse error"
+     ]
+    ]
+   }
+  ],
+  "note": "Stop: \"x\" fails. The stream closes. \"3\" is not read.",
+  "alt": "MapFilter returns an error for x and the stream stops"
+ },
+ "mapfilter-skip": {
+  "op": "MapFilter (return false, nil)",
+  "in": [
+   [
+    "",
+    [
+     "\"1\"",
+     "\"x\"",
+     "\"3\""
+    ]
+   ]
+  ],
+  "emit": [
+   "1",
+   null,
+   "3"
+  ],
+  "note": "Skip: \"x\" is dropped. The stream goes on.",
+  "alt": "MapFilter skips x and the stream goes on"
+ },
+ "chan": {
+  "op": "Chan()",
+  "in": [
+   [
+    "stream",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "<-chan T"
+  ],
+  "emit": [
+   "1",
+   "2",
+   "3"
+  ],
+  "note": "A direct read from the channel skips the stream operators.",
+  "alt": "Chan returns the channel under the stream"
+ },
+ "iter": {
+  "op": "Iter()",
+  "in": [
+   [
+    "stream",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "range"
+  ],
+  "emit": [
+   "v=1",
+   "v=2",
+   "v=3"
+  ],
+  "note": "The iterator drains the stream. You can use it one time only.",
+  "alt": "Iter yields 1, 2, 3 to a range loop"
+ },
+ "iter2": {
+  "op": "Iter2()",
+  "in": [
+   [
+    "stream",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "out": [
+   "range"
+  ],
+  "emit": [
+   "0, a",
+   "1, b",
+   "2, c"
+  ],
+  "note": "Each element comes with its zero-based index.",
+  "alt": "Iter2 yields 0 a, 1 b, 2 c to a range loop"
+ },
+ "buffer": {
+  "op": "Pipe(WithBuffer(2))",
+  "in": [
+   [
+    "Try",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "out": [
+   "buffer",
+   "ErrFull"
+  ],
+  "red": [
+   "ErrFull"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "a"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      0,
+      "b"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      1,
+      "c"
+     ]
+    ]
+   }
+  ],
+  "note": "The consumer is slow. The buffer holds 2 elements, so Try(c) returns ErrFull. Send(c) waits.",
+  "alt": "A Pipe with buffer 2 accepts a and b; Try(c) returns ErrFull"
+ },
+ "map-error": {
+  "op": "Map(fn)",
+  "in": [
+   [
+    "",
+    [
+     "1",
+     "2",
+     "3"
+    ]
+   ]
+  ],
+  "out": [
+   "output",
+   "error"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "fn(1)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      1,
+      "err"
+     ]
+    ]
+   }
+  ],
+  "note": "fn(2) returns an error. The stream closes and gofuncy gets the error. 3 is not read.",
+  "alt": "Map stops when fn returns an error"
+ },
+ "error-handler": {
+  "op": "Process(fn)",
+  "in": [
+   [
+    "",
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ],
+  "out": [
+   "done",
+   "h"
+  ],
+  "red": [
+   "h"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "fn(a)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      1,
+      "err(b)"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      0,
+      "fn(c)"
+     ]
+    ]
+   }
+  ],
+  "note": "With WithErrorHandler(h), fn(b) fails, h gets the error, and consumption goes on.",
+  "alt": "With WithErrorHandler, errors go to h and the stream goes on"
+ },
+ "cancel-collect": {
+  "op": "Collect",
+  "in": [
+   [
+    "Generate",
+    [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5"
+    ]
+   ]
+  ],
+  "out": [
+   "result",
+   "ctx"
+  ],
+  "red": [
+   "ctx"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "emit": [
+     [
+      1,
+      "Done()"
+     ]
+    ],
+    "wait": 0.4
+   },
+   {
+    "emit": [
+     [
+      0,
+      "[1 2 3]"
+     ]
+    ]
+   }
+  ],
+  "note": "ctx ends after 3 elements. Collect returns [1 2 3] and no error.",
+  "alt": "When ctx ends, Collect returns the elements so far"
+ },
+ "cancel-foreach": {
+  "op": "ForEach(handle)",
+  "in": [
+   [
+    "FromFunc",
+    [
+     "e1",
+     "e2",
+     "e3",
+     "e4"
+    ]
+   ]
+  ],
+  "out": [
+   "handled",
+   "ctx"
+  ],
+  "red": [
+   "ctx"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "e1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      0,
+      "e2"
+     ]
+    ]
+   },
+   {
+    "emit": [
+     [
+      1,
+      "SIGTERM"
+     ]
+    ],
+    "wait": 0.4
+   }
+  ],
+  "note": "SIGTERM cancels ctx. ForEach stops and returns context.Canceled.",
+  "alt": "A signal cancels ctx and ForEach stops"
+ },
+ "drain": {
+  "op": "Batch(MaxItems(2))",
+  "in": [
+   [
+    "queued",
+    [
+     "e1",
+     "e2",
+     "e3",
+     "e4",
+     "e5"
+    ]
+   ]
+  ],
+  "out": [
+   "post"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     "[e1 e2]"
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     "[e3 e4]"
+    ]
+   },
+   {
+    "take": [
+     4
+    ]
+   },
+   {
+    "emit": [
+     "[e5]"
+    ],
+    "wait": 0.5
+   }
+  ],
+  "note": "After Close(ctx), fn drains the queue. The last batch flushes. Then Close returns.",
+  "alt": "On Close, PipeFunc drains the queued events in batches"
+ },
+ "fromfunc-bridge": {
+  "ops": [
+   "FromFunc(16)",
+   "Filter(order)",
+   "ForEach"
+  ],
+  "in": [
+   [
+    "Subscribe",
+    [
+     "click",
+     "order",
+     "scroll"
+    ]
+   ]
+  ],
+  "mid": [
+   1,
+   1
+  ],
+  "out": [
+   "processed"
+  ],
+  "stagger": 0.8,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "click"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "order"
+     ],
+     [
+      0,
+      "order"
+     ],
+     [
+      0,
+      "order"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      0,
+      "scroll"
+     ],
+     null
+    ]
+   }
+  ],
+  "note": "FromFunc turns subscriber callbacks into a stream.",
+  "alt": "FromFunc bridges a subscriber; Filter keeps orders; ForEach processes them"
+ },
+ "fetch": {
+  "ops": [
+   "FanOut(3)",
+   "fetch",
+   "FanIn"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "url1",
+     "url2",
+     "url3"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   3
+  ],
+  "out": [
+   ""
+  ],
+  "stagger": 0.5,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "url1"
+     ],
+     [
+      0,
+      "body1",
+      1.2
+     ],
+     [
+      0,
+      "body1"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "url2"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "url3"
+     ],
+     [
+      2,
+      "body3",
+      0.2
+     ],
+     [
+      0,
+      "body3"
+     ]
+    ]
+   }
+  ],
+  "note": "3 fetches run at the same time. url2 fails, so fn skips it.",
+  "alt": "FanMapFilter fetches 3 URLs at the same time and skips the failed one"
+ },
+ "compose": {
+  "ops": [
+   "FromFunc",
+   "Map(enrich)",
+   "Process(8)"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "e1",
+     "e2",
+     "e3"
+    ]
+   ]
+  ],
+  "mid": [
+   1,
+   1
+  ],
+  "out": [
+   "stored"
+  ],
+  "stagger": 0.8,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "e1"
+     ],
+     [
+      0,
+      "E1"
+     ],
+     [
+      0,
+      "E1"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "e2"
+     ],
+     [
+      0,
+      "E2"
+     ],
+     [
+      0,
+      "E2"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      0,
+      "e3"
+     ],
+     [
+      0,
+      "E3"
+     ],
+     [
+      0,
+      "E3"
+     ]
+    ]
+   }
+  ],
+  "note": "Each package adds one stage. E1 is the enriched e1.",
+  "alt": "ingest, transform and main each add one stage to the pipeline"
+ },
+ "example-parallel-http": {
+  "ops": [
+   "FanOut",
+   "fetch",
+   "FanIn"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "url1",
+     "url2",
+     "url3"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   3
+  ],
+  "out": [
+   ""
+  ],
+  "stagger": 0.5,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "url1"
+     ],
+     [
+      0,
+      "200",
+      1.2
+     ],
+     [
+      0,
+      "200"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "url2"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "url3"
+     ],
+     [
+      2,
+      "404",
+      0.2
+     ],
+     [
+      0,
+      "404"
+     ]
+    ]
+   }
+  ],
+  "note": "The example uses 8 workers. url2 fails and is skipped.",
+  "alt": "FanMapFilter fetches 3 URLs at the same time, skips the failed one and merges the pages"
+ },
+ "example-file-import": {
+  "op": "MapFilter, Split(2)",
+  "in": [
+   [
+    "lines",
+    [
+     "1,ann",
+     "x",
+     "2,bob",
+     "3,eve"
+    ]
+   ]
+  ],
+  "out": [
+   ""
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "[ann bob]"
+    ]
+   },
+   {
+    "take": [
+     3
+    ]
+   },
+   {
+    "emit": [
+     "[eve]"
+    ],
+    "wait": 0.8
+   }
+  ],
+  "note": "MapFilter skips the bad line x. The example uses batches of 500.",
+  "alt": "MapFilter parses lines and skips x; Split groups the rows into insert batches"
+ },
+ "example-job-queue": {
+  "ops": [
+   "PipeFunc",
+   "Process(4)"
+  ],
+  "in": [
+   [
+    "Send",
+    [
+     "job1",
+     "job2",
+     "job3"
+    ]
+   ]
+  ],
+  "mid": [
+   1
+  ],
+  "out": [
+   ""
+  ],
+  "stagger": 0.9,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "job1"
+     ],
+     [
+      0,
+      "job1"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      0,
+      "job2"
+     ],
+     [
+      0,
+      "job2"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      0,
+      "job3"
+     ],
+     [
+      0,
+      "job3"
+     ]
+    ]
+   }
+  ],
+  "note": "On shutdown, Close(ctx) waits for the queued jobs.",
+  "alt": "Handlers send jobs into PipeFunc; Process sends them on 4 workers"
+ },
+ "example-event-buffer": {
+  "op": "Batch(MaxItems(3), MaxWait)",
+  "in": [
+   [
+    "Try",
+    [
+     "e1",
+     "e2",
+     "e3",
+     "e4"
+    ]
+   ]
+  ],
+  "out": [
+   ""
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     "[e1 e2 e3]"
+    ]
+   },
+   {
+    "take": [
+     3
+    ]
+   },
+   {
+    "emit": [
+     "[e4]"
+    ],
+    "wait": 1.2
+   }
+  ],
+  "note": "The example uses 1000 events and 2s. [e4] flushes after MaxWait.",
+  "alt": "Batch flushes [e1 e2 e3] when full and [e4] when MaxWait ends"
+ },
+ "example-crawl": {
+  "op": "Take(3)",
+  "in": [
+   [
+    "page 1",
+    [
+     "i1",
+     "i2"
+    ]
+   ],
+   [
+    "page 2",
+    [
+     "i3",
+     "i4"
+    ]
+   ]
+  ],
+  "out": [
+   "items"
+  ],
+  "steps": [
+   {
+    "take": [
+     [
+      0,
+      0
+     ]
+    ],
+    "emit": [
+     "i1"
+    ]
+   },
+   {
+    "take": [
+     [
+      0,
+      1
+     ]
+    ],
+    "emit": [
+     "i2"
+    ]
+   },
+   {
+    "take": [
+     [
+      1,
+      0
+     ]
+    ],
+    "emit": [
+     "i3"
+    ]
+   }
+  ],
+  "note": "FromFunc sends the items page by page. After 3 items, cancel stops the crawler. i4 is not read.",
+  "alt": "Take(3) reads i1, i2 from page 1 and i3 from page 2, then stops"
+ },
+ "example-rate-limit": {
+  "ops": [
+   "Distinct(lower)",
+   "Throttle(100ms)"
+  ],
+  "in": [
+   [
+    "",
+    [
+     "Main",
+     "main",
+     "Oak"
+    ]
+   ]
+  ],
+  "mid": [
+   1
+  ],
+  "out": [
+   ""
+  ],
+  "stagger": 0.6,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "Main"
+     ],
+     [
+      0,
+      "Main"
+     ]
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      0,
+      "Oak"
+     ],
+     [
+      0,
+      "Oak",
+      1.2
+     ]
+    ]
+   }
+  ],
+  "note": "main is a duplicate of Main. One address passes every 100ms.",
+  "alt": "Distinct drops the duplicate main; Throttle passes Main and Oak 100ms apart"
+ },
+ "example-merge": {
+  "op": "FanIn",
+  "in": [
+   [
+    "queue",
+    [
+     "q1",
+     "q2"
+    ]
+   ],
+   [
+    "webhooks",
+    [
+     "w1"
+    ]
+   ],
+   [
+    "timer",
+    [
+     "tick"
+    ]
+   ]
+  ],
+  "out": [
+   "handleMessage"
+  ],
+  "steps": [
+   {
+    "take": [
+     [
+      0,
+      0
+     ]
+    ],
+    "emit": [
+     "q1"
+    ]
+   },
+   {
+    "take": [
+     [
+      1,
+      0
+     ]
+    ],
+    "emit": [
+     "w1"
+    ]
+   },
+   {
+    "take": [
+     [
+      0,
+      1
+     ]
+    ],
+    "emit": [
+     "q2"
+    ]
+   },
+   {
+    "take": [
+     [
+      2,
+      0
+     ]
+    ],
+    "emit": [
+     "tick"
+    ]
+   }
+  ],
+  "note": "Each message comes out when its source sends it.",
+  "alt": "FanIn merges the queue, webhook and timer streams into one stream"
+ },
+ "example-broadcast": {
+  "op": "Tee(2)",
+  "in": [
+   [
+    "docs",
+    [
+     "d1",
+     "d2",
+     "d3"
+    ]
+   ]
+  ],
+  "out": [
+   "out[0]: store",
+   "out[1]: index"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ],
+    "emit": [
+     [
+      0,
+      "d1"
+     ],
+     [
+      1,
+      "d1"
+     ]
+    ]
+   },
+   {
+    "take": [
+     1
+    ],
+    "emit": [
+     [
+      0,
+      "d2"
+     ],
+     [
+      1,
+      "d2"
+     ]
+    ]
+   },
+   {
+    "take": [
+     2
+    ],
+    "emit": [
+     [
+      0,
+      "d3"
+     ],
+     [
+      1,
+      "d3"
+     ]
+    ]
+   }
+  ],
+  "note": "Both sinks get every document. Tee blocks on the slower sink.",
+  "alt": "Tee(2) sends every document to the store and to the index"
+ },
+ "example-anomaly": {
+  "op": "Window(3), MapFilter",
+  "in": [
+   [
+    "readings",
+    [
+     "10",
+     "11",
+     "10",
+     "30"
+    ]
+   ]
+  ],
+  "out": [
+   "alerts"
+  ],
+  "steps": [
+   {
+    "take": [
+     0
+    ]
+   },
+   {
+    "take": [
+     1
+    ]
+   },
+   {
+    "take": [
+     2
+    ]
+   },
+   {
+    "take": [
+     3
+    ],
+    "emit": [
+     "30 (avg 10.5)"
+    ]
+   }
+  ],
+  "note": "The example uses windows of 10. [10 11 10] has no alert. In [11 10 30], 30 is far from 10.5.",
+  "alt": "Window and MapFilter flag 30, because it is far from the average 10.5"
+ },
+ "example-first-healthy": {
+  "ops": [
+   "FanOut",
+   "ping",
+   "FindFirst"
+  ],
+  "in": [
+   [
+    "mirrors",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ]
+  ],
+  "mid": [
+   3,
+   1
+  ],
+  "out": [
+   "result"
+  ],
+  "stagger": 0.4,
+  "paths": [
+   {
+    "from": [
+     0,
+     0
+    ],
+    "hops": [
+     [
+      0,
+      "m1"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     1
+    ],
+    "hops": [
+     [
+      1,
+      "m2"
+     ],
+     null
+    ]
+   },
+   {
+    "from": [
+     0,
+     2
+    ],
+    "hops": [
+     [
+      2,
+      "m3"
+     ],
+     [
+      0,
+      "m3",
+      0.1
+     ],
+     [
+      0,
+      "m3, true"
+     ]
+    ]
+   }
+  ],
+  "note": "m2 is down. m3 answers first, so FindFirst returns it and cancel stops the slow m1 check.",
+  "alt": "Mirrors are pinged at the same time; FindFirst returns the first healthy mirror m3"
+ }
+}

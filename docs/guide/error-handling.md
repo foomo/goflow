@@ -19,9 +19,29 @@ These operators accept callbacks that return an `error`. When the callback retur
 
 For intermediate operators (`Map`, `MapFilter`, `FlatMap`), an error closes the output channel and the error is passed to gofuncy.Go's error handler. Downstream operators see a closed channel and terminate normally.
 
+![Map stops when fn returns an error](./diagrams/map-error.svg)
+
 For terminal operators (`Reduce`, `ForEach`), the error is returned directly to the caller.
 
 For `Process`, all worker errors are collected and returned via `errors.Join`, so you see every failure.
+
+### WithErrorHandler
+
+For long-lived streams, pass `goflow.WithErrorHandler` to `ForEach` or `Process`. Each per-element error goes to the handler, consumption continues, and no error is retained. The terminal then returns only context errors or nil.
+
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/error-handler.svg" alt="With WithErrorHandler, errors go to h and the stream goes on"></div>
+
+```go [Code]
+err := s.Process(8, func(ctx context.Context, e Event) error {
+    return handle(ctx, e)
+}, goflow.WithErrorHandler(func(ctx context.Context, err error) {
+    slog.ErrorContext(ctx, "event failed", "error", err)
+}))
+```
+
+:::
 
 ## Non-Error Operators
 
@@ -79,7 +99,11 @@ Context cancellation is the primary mechanism for stopping a pipeline. When the 
 2. Channels close in cascade from source to sink.
 3. Terminal operators return whatever has been collected so far.
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/cancel-collect.svg" alt="When ctx ends, Collect returns the elements so far"></div>
+
+```go [Code]
 ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
@@ -91,6 +115,8 @@ results := goflow.Generate(ctx, produceItem).
     Collect()
 ```
 
+:::
+
 ::: warning
 When a context is cancelled, `Collect()` returns the elements received so far -- it does not return an error. If you need to distinguish between a completed stream and a cancelled one, check `ctx.Err()` after the terminal operation.
 :::
@@ -101,7 +127,11 @@ When a context is cancelled, `Collect()` returns the elements received so far --
 
 For long-running pipelines, combine context cancellation with ForEach to handle errors explicitly:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/cancel-foreach.svg" alt="A signal cancels ctx and ForEach stops"></div>
+
+```go [Code]
 ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 defer cancel()
 
@@ -118,6 +148,8 @@ if err != nil && !errors.Is(err, context.Canceled) {
 }
 ```
 
+:::
+
 ::: tip
 Use `ForEach` or `Process` as terminal operators when you need to observe errors. `Collect`, `Count`, and other aggregation terminals silently stop on context cancellation.
 :::
@@ -126,7 +158,11 @@ Use `ForEach` or `Process` as terminal operators when you need to observe errors
 
 With `MapFilter`, you can choose whether an error should stop the pipeline or just skip the problematic element:
 
-```go
+::: code-group
+
+<div class="vp-block active" data-title="Diagram"><img src="./diagrams/mapfilter-stop.svg" alt="MapFilter returns an error for x and the stream stops"><img src="./diagrams/mapfilter-skip.svg" alt="MapFilter skips x and the stream goes on"></div>
+
+```go [Code]
 // Stop on error
 results := goflow.MapFilter(s, func(ctx context.Context, raw string) (Parsed, bool, error) {
     p, err := parse(raw)
@@ -145,6 +181,8 @@ results := goflow.MapFilter(s, func(ctx context.Context, raw string) (Parsed, bo
     return p, true, nil
 })
 ```
+
+:::
 
 ::: danger
 Silently skipping errors can hide bugs. Consider logging skipped items via Peek or a structured logger so failures remain visible.

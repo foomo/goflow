@@ -14,34 +14,21 @@ func FanIn[T any](streams []Stream[T]) Stream[T] {
 		return Empty[T]()
 	}
 
-	ctx := streams[0].ctx
-	opts := streams[0].opts
+	return stage(streams[0], "goflow.fan-in", func(ctx context.Context, emit func(T) bool) error {
+		g := gofuncy.NewGroup(ctx, streams[0].p.groupOpts("goflow.fan-in")...)
 
-	if ctx.Err() != nil {
-		return closed[T](ctx)
-	}
-
-	source := make(chan T)
-	g := gofuncy.NewGroup(ctx, gofuncy.WithName("goflow.fan-in"))
-
-	for _, s := range streams {
-		g.Add(func(ctx context.Context) error {
-			for item := range s.source {
-				select {
-				case <-ctx.Done():
-					return nil
-				case source <- item:
+		for _, s := range streams {
+			g.Add(func(context.Context) error {
+				for item := range s.items() {
+					if !emit(item) {
+						return nil
+					}
 				}
-			}
 
-			return nil
-		}, gofuncy.WithName("goflow.fan-in.worker"))
-	}
+				return nil
+			}, gofuncy.WithName("goflow.fan-in.worker"))
+		}
 
-	gofuncy.Go(ctx, func(ctx context.Context) error {
-		defer close(source)
 		return g.Wait()
-	}, append(opts, gofuncy.WithName("goflow.fan-in"))...)
-
-	return Stream[T]{ctx: ctx, source: source, opts: opts}
+	})
 }

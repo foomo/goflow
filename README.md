@@ -53,7 +53,9 @@ func main() {
 - Composable functional operators (Map, Filter, FlatMap, Reduce, and more)
 - Built-in concurrency (FanOut, FanIn, FanMap, Process, Tee)
 - Context-aware cancellation and timeout propagation
-- Channel buffering control via `Pipe`
+- Writable entry point via `Pipe` with buffering, non-blocking `Try`, and graceful shutdown via `PipeFunc`
+- Size-, byte-, and time-based batching via `Batch`
+- OpenTelemetry metrics and trace links for Pipe-based pipelines
 - `iter.Seq`/`iter.Seq2` integration
 - OpenTelemetry tracing via gofuncy
 

@@ -2,62 +2,28 @@ package goflow
 
 import (
 	"context"
-	"sync"
-
-	"github.com/foomo/gofuncy"
 )
 
 // Pipe creates a writable stream entry point.
-// Returns a send function and the readable stream.
-// The send function returns ctx.Err() if the context is cancelled.
-// The channel is closed when ctx is done.
-func Pipe[T any](ctx context.Context, bufferSize ...int) (func(context.Context, T) error, Stream[T]) {
-	size := 0
-	if len(bufferSize) > 0 {
-		size = bufferSize[0]
-	}
+// Returns a Sender and the readable stream.
+//
+// The entry point closes when ctx is done or when [Sender.Close] is called. The
+// stream and all stages derived from it run on ctx, so they stop when ctx ends.
+// After that, [Stream.Collect], [Stream.Count], [Stream.Iter], [Stream.Iter2]
+// and [Stream.FindFirst] still read the elements buffered in the entry point;
+// [Stream.ForEach], [Stream.Process], [Stream.Chan] and the other stages stop
+// with ctx and drop them. To drain a long-lived pipeline on shutdown, use
+// [PipeFunc] instead.
+//
+// Queue depth and capacity gauges are only reported when [WithName] is set;
+// the name must then be unique among live pipes. They are removed when the
+// entry point closes.
+//
+// Options: [WithBuffer], WithName, [WithMeterProvider], [WithTracerProvider],
+// [WithStageTracing].
+func Pipe[T any](ctx context.Context, opts ...Option) (*Sender[T], Stream[T]) {
+	s := newSender[T](newConfig(opts))
+	s.watch(ctx)
 
-	ch := make(chan T, size)
-
-	var mu sync.Mutex
-
-	isClosed := false
-
-	go func() {
-		<-ctx.Done()
-		mu.Lock()
-		isClosed = true
-
-		close(ch)
-		mu.Unlock()
-	}()
-
-	send := func(sctx context.Context, v T) error {
-		mu.Lock()
-		defer mu.Unlock()
-
-		if isClosed {
-			return ctx.Err()
-		}
-
-		select {
-		case <-sctx.Done():
-			return sctx.Err()
-		case ch <- v:
-			return nil
-		}
-	}
-
-	return send, From[T](ctx, ch)
-}
-
-// PipeFunc creates a Pipe and launches the consumer fn in a gofuncy.Go goroutine.
-// Returns only the send handler.
-func PipeFunc[T any](ctx context.Context, fn func(context.Context, Stream[T]) error, opts ...gofuncy.GoOption) func(context.Context, T) error {
-	send, s := Pipe[T](ctx)
-	gofuncy.Go(ctx, func(ctx context.Context) error {
-		return fn(ctx, s)
-	}, append(opts, gofuncy.WithName("goflow.pipe-func"))...)
-
-	return send
+	return s, s.stream(ctx)
 }

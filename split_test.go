@@ -27,3 +27,8 @@ func ExampleSplit() {
 	fmt.Println(got)
 	// Output: [[1 2] [3 4] [5]]
 }
+
+func TestSplitInvalidSize(t *testing.T) {
+	got := stream.Split(stream.Of(t.Context(), 1, 2), 0).Collect()
+	assert.Empty(t, got)
+}
