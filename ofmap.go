@@ -2,12 +2,6 @@ package goflow
 
 import "context"
 
-// KeyValue holds a single key-value pair from a map.
-type KeyValue[K comparable, V any] struct {
-	Key   K
-	Value V
-}
-
 // OfMap returns a Stream of KeyValue pairs from the given map.
 // Iteration order is non-deterministic, matching Go's map semantics.
 func OfMap[K comparable, V any](ctx context.Context, m map[K]V) Stream[KeyValue[K, V]] {
