@@ -29,17 +29,3 @@ features:
   - title: iter.Seq Integration
     details: Convert between streams and Go 1.23 iterators with Iter(), Iter2(), and FromIter() for seamless interop.
 ---
-
-<div class="vp-doc" style="max-width:960px;margin:48px auto 0;padding:0 24px">
-
-## How it works
-
-A stream moves elements through operators. Each operator runs in its own goroutine.
-
-![Filter(even) then Map(n * 2) turns [1, 2, 3, 4] into [4, 8]](./guide/diagrams/basic-pipeline.svg)
-
-Concurrency operators spread the work over workers and merge the results.
-
-![FanMap runs fn on 3 workers and merges the results](./guide/diagrams/fanmap.svg)
-
-</div>
